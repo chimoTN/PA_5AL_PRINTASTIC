@@ -1,12 +1,12 @@
-import React from "react";
+// src/Pages/Accueil.tsx
 import { Container, Row, Col } from "react-bootstrap";
 
 export const Accueil = () => {
   return (
     <div
       style={{
-        height: "100vh",
-        width: "100vw",
+        height: "calc(100vh - 60px)", // Ajustez en fonction de la hauteur de votre Navbar
+        width: "100%",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
