@@ -2,6 +2,8 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import '../assets/styles/Navbar.css';
+import caddie from '../assets/images/caddie.png';
+import { Button } from 'react-bootstrap';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -38,6 +40,13 @@ const Navbar = () => {
             <i className="fas fa-sign-in-alt"></i> Connexion
           </Link>
         )}
+        <Button
+          variant="primary"
+          style={{ padding: '6px 10px' }}
+          onClick={() => navigate('/shoppingCart')}
+        >
+          <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
+        </Button>
       </div>
     </nav>
   );
