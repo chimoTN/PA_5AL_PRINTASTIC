@@ -1,14 +1,16 @@
 // src/Pages/Accueil.tsx
 import ProductCard from "./ProductCard";
+import figurine from '../assets/images/produits/figurine.png';
 
 export const ProductList = () => {
 
   const products = [
-    { id: '1', name: 'Dragon PLA', price: 14.99, imageUrl: '../assets/images/produits/figurine.png' },
-    { id: '2', name: 'Space Helmet', price: 24.99, imageUrl: '../assets/images/produits/figurine.png' },
-    { id: '3', name: 'Warrior Bust', price: 19.99, imageUrl: '../assets/images/produits/figurine.png' },
-    { id: '4', name: 'Alien Egg', price: 29.99, imageUrl: '../assets/images/produits/figurine.png' },
+      { id: '1', name: 'Dragon PLA', price: 14.99, imageUrl: figurine },
+      { id: '2', name: 'Space Helmet', price: 24.99, imageUrl: figurine },
+      { id: '3', name: 'Warrior Bust', price: 19.99, imageUrl: figurine },
+      { id: '4', name: 'Alien Egg', price: 29.99, imageUrl: figurine },
   ];
+
 
   return (
     <div

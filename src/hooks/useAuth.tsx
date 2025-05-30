@@ -1,6 +1,6 @@
 // src/hooks/useAuth.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiService } from '../services/api.service';
+import { apiService } from '../Services/auth.service';
 
 interface AuthContextType {
   user: any | null;

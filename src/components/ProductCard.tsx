@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import caddie from '../assets/images/caddie.png';
 import { Button } from 'react-bootstrap';
-import figurine from '../assets/images/produits/figurine.png';
 import { useCart } from '../hooks/useSoppingCart';
 
 type ProductCardProps = {
@@ -44,8 +43,9 @@ const ProductCard: React.FC<ProductCardProps> = ({
             transition: 'transform 0.2s ease-in-out',
         }}
         >
+
         <img
-            src={figurine}
+            src={imageUrl}
             alt={name}
             style={{
                 width: '100%',
@@ -55,21 +55,22 @@ const ProductCard: React.FC<ProductCardProps> = ({
             }}
         />
 
+
         <div
             style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto',
-            alignItems: 'center',
-            marginBottom: '-10px',
+                display: 'grid',
+                gridTemplateColumns: '1fr auto',
+                alignItems: 'center',
+                marginBottom: '-10px',
             }}
         >
             <h5 style={{ margin: 0 }}>{name}</h5>
             <Button
-            variant="primary"
-            onClick={handleAddToCart}
-            style={{ padding: '6px 10px' }}
+                variant="primary"
+                onClick={handleAddToCart}
+                style={{ padding: '6px 10px' }}
             >
-            <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
+                <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
             </Button>
         </div>
 

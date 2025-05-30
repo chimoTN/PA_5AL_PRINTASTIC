@@ -1,8 +1,10 @@
-// src/pages/ProductDetails.tsx
 import React from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Button } from 'react-bootstrap';
 import figurine from '../assets/images/produits/figurine.png';
+import '../assets/styles/productDetail.css'
+import { useCart } from '../hooks/useSoppingCart';
+import caddie from '../assets/images/caddie.png';
 
 const mockProduct = {
   id: '1',
@@ -12,39 +14,56 @@ const mockProduct = {
   imageUrl: figurine,
 };
 
+
+
 const ProductDetails = () => {
   const { id } = useParams();
-
   const product = mockProduct;
+
+  const { addToCart } = useCart();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    addToCart({
+      id: product.id,
+      name: product.name,
+      price: product.price,
+      quantity: 1,
+      imageUrl: product.imageUrl,
+    });
+  };
 
   return (
     <Container style={{ paddingTop: '60px', minHeight: '100vh' }}>
-      <Row className="align-items-start">
+      <div className="product-grid">
         {/* IMAGE à gauche */}
-        <Col xs={12} md={6}>
+        <div className="product-image">
           <img
             src={product.imageUrl}
             alt={product.name}
             className="img-fluid rounded shadow"
-            style={{ maxHeight: 500, objectFit: 'cover', width: '50%' }}
           />
-        </Col>
+        </div>
 
-        {/* INFO à droite */}
-        <Col xs={12} md={6}>
-          <div className="d-flex flex-column h-100 justify-content-start p-3">
-            <h1 style={{ fontSize: '3rem', fontWeight: 'bold' }}>
-              {product.name}
-            </h1>
-            <h3 className="text-primary mb-3">
-              {product.price.toFixed(2)} €
-            </h3>
-            <p style={{ fontSize: '1.1rem', whiteSpace: 'pre-line' }}>
-              {product.description}
-            </p>
-          </div>
-        </Col>
-      </Row>
+        {/* INFOS à droite */}
+        <div className="product-info">
+          <h1>{product.name}</h1>
+          <h3 className="text-primary">{product.price.toFixed(2)} €</h3>
+          <p style={{ whiteSpace: 'pre-line' }}>{product.description}</p>
+
+          <Button
+              variant="primary"
+              onClick={handleAddToCart}
+              style={{ padding: '6px 10px' }}
+          >
+            Ajouter au panier
+            <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
+          </Button>
+
+          <br />
+          <Button variant="outline-secondary">Voir le modèle 3D</Button>
+        </div>
+      </div>
     </Container>
   );
 };
