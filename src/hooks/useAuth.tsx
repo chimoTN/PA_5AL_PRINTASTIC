@@ -1,6 +1,6 @@
 // src/hooks/useAuth.tsx
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { apiService } from '../services/api.service';
+import { authService } from '../services';
 
 interface AuthContextType {
   user: any | null;
@@ -8,7 +8,6 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, motDePasse: string) => Promise<any>;
   logout: () => Promise<void>;
-  // Autres méthodes...
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,11 +29,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuthStatus = async () => {
       try {
         // Vérifier l'authentification via l'API
-        const isLoggedIn = await apiService.auth.checkAuth();
+        const isLoggedIn = await authService.checkAuth();
         
         if (isLoggedIn) {
           // Si authentifié, récupérer les infos du profil
-          const profileResponse = await apiService.auth.getProfile();
+          const profileResponse = await authService.getProfile();
           
           if (profileResponse.success && profileResponse.utilisateur) {
             setUser(profileResponse.utilisateur);
@@ -62,10 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async (email: string, motDePasse: string) => {
     setIsLoading(true);
     try {
-      const response = await apiService.auth.login(email, motDePasse);
+      const response = await authService.login(email, motDePasse);
       
       if (response.success && response.utilisateur) {
-        // Stocker l'utilisateur mais pas de token (cookies gérés par le navigateur)
         setUser(response.utilisateur);
         setIsAuthenticated(true);
       }
@@ -76,7 +74,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.error('Erreur de connexion:', error);
       setIsLoading(false);
       
-      // Retourner un objet de réponse d'erreur formaté
       return {
         success: false,
         message: error.message || 'Erreur lors de la connexion'
@@ -86,11 +83,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     try {
-      await apiService.auth.logout();
+      await authService.logout();
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error);
     } finally {
-      // Pas besoin de supprimer de token, le serveur gère les cookies de session
       setUser(null);
       setIsAuthenticated(false);
     }
@@ -102,7 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     isLoading,
     login,
     logout,
-    // Ajoutez d'autres méthodes au besoin
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
