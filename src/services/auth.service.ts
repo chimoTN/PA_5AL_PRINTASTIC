@@ -1,5 +1,6 @@
 // src/services/auth.service.ts
-import { baseService } from './base.service';
+
+import { baseService } from "./base.service";
 
 export interface AuthResponse {
   success: boolean;

@@ -24,20 +24,13 @@ const LoginPage = () => {
       setLoading(true);
       setError('');
       
-      // Call login function from useAuth
       const response = await login(email, motDePasse);
       
       if (response.success) {
         console.log('Connexion réussie:', response);
-        // Add notification if needed
-        alert(response.message || 'Connexion réussie!');
         
-        // Redirect based on user role
-        if (response.utilisateur?.role === 'PROPRIETAIRE') {
-          navigate('/dashboard');
-        } else {
-          navigate('/');
-        }
+        // Rediriger vers le dashboard pour tous les utilisateurs connectés
+        navigate('/dashboard');
       } else {
         setError(response.message || 'Échec de la connexion');
       }
