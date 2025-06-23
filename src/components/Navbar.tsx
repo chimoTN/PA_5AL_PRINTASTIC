@@ -5,8 +5,7 @@ import '../assets/styles/Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, isLoading, user } = useAuth();
-
+  const { isAuthenticated, logout, authLoading, user } = useAuth(); 
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -27,7 +26,7 @@ const Navbar = () => {
           Accueil
         </Link>
         
-        {!isLoading && isAuthenticated && (
+        {!authLoading && isAuthenticated && (
           <>
             <Link to="/dashboard" className="navbar-item">
               <i className="fas fa-tachometer-alt"></i>
@@ -42,7 +41,7 @@ const Navbar = () => {
       </div>
       
       <div className="navbar-actions">
-        {isLoading ? (
+        {authLoading ? ( // ✅ authLoading au lieu de isLoading
           <div className="loading-indicator">
             <i className="fas fa-spinner fa-spin"></i>
             <span>Chargement...</span>

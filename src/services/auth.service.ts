@@ -1,76 +1,127 @@
 // src/services/auth.service.ts
+import { baseService, type AuthResponse, type AuthUser } from './base.service';
 
-import { baseService } from "./base.service";
-
-export interface AuthResponse {
+interface ProfilResponse {
   success: boolean;
+  utilisateur?: AuthUser;
   message?: string;
-  utilisateur?: any;
 }
 
-export interface RegisterData {
-  email: string;
-  motDePasse: string;
-  nom: string;
-  prenom: string;
-}
+class AuthService {
+  private currentUser: AuthUser | null = null;
 
-export const authService = {
-  // Connexion de l'utilisateur
-  async login(email: string, motDePasse: string): Promise<AuthResponse> {
-    console.log('👤 Tentative de connexion pour:', email);
-    
-    return baseService.request<AuthResponse>('/api/auth/connexion', {
-      method: 'POST',
-      body: JSON.stringify({ email, motDePasse }),
-    });
-  },
+  async login(email: string, password: string): Promise<AuthResponse> {
+    try {
+      console.log('👤 Tentative de connexion pour:', email);
+      
+      const response = await baseService.post<AuthResponse>('/auth/connexion', {
+        email,
+        motDePasse: password
+      });
 
-  // Inscription d'un nouvel utilisateur
-  async register(userData: RegisterData): Promise<AuthResponse> {
-    return baseService.request<AuthResponse>('/api/auth/inscription', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-    });
-  },
+      console.log('🔍 Réponse de connexion:', response);
 
-  // Récupération du profil de l'utilisateur connecté
-  async getProfile(silent: boolean = false): Promise<AuthResponse> {
-    return baseService.request<AuthResponse>('/api/auth/profil', {
-      silent,
-    } as any);
-  },
+      if (response.success && response.utilisateur) {
+        this.currentUser = response.utilisateur;
+        localStorage.setItem('user', JSON.stringify(response.utilisateur));
+        console.log('✅ Utilisateur connecté et stocké:', this.currentUser);
+        return response;
+      }
 
-  // Déconnexion de l'utilisateur
+      throw new Error(response.message || 'Échec de la connexion');
+    } catch (error) {
+      console.error('❌ Erreur lors de la connexion:', error);
+      this.logout();
+      throw error;
+    }
+  }
+
   async logout(): Promise<void> {
     try {
-      await baseService.request<AuthResponse>('/api/auth/deconnexion', {
-        method: 'POST',
-      });
+      // Tentative de déconnexion côté serveur
+      await baseService.post('/auth/deconnexion', {});
     } catch (error) {
-      console.error('Erreur lors de la déconnexion:', error);
+      console.warn('⚠️ Erreur lors de la déconnexion serveur:', error);
+    } finally {
+      // Nettoyage côté client
+      this.currentUser = null;
+      localStorage.removeItem('user');
+      console.log('✅ Déconnexion locale effectuée');
     }
-  },
-  
-  // Vérification de l'authentification
-  async checkAuth(): Promise<boolean> {
-    try {
-      // Vérifier si un cookie d'authentification existe
-      const cookies = document.cookie.split(';');
-      const authCookieExists = cookies.some(cookie => 
-        cookie.trim().startsWith('connect.sid='));
-        
-      // Si aucun cookie de session, éviter l'appel API inutile
-      if (!authCookieExists) {
-        console.log('Aucun cookie de session trouvé');
-        return false;
+  }
+
+  getCurrentUser(): AuthUser | null {
+    if (!this.currentUser) {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          this.currentUser = JSON.parse(userData);
+          console.log('👤 Utilisateur récupéré du localStorage:', this.currentUser);
+        } catch (e) {
+          console.error('❌ Erreur parsing user data:', e);
+          localStorage.removeItem('user');
+        }
       }
-  
-      // Appel API silencieux pour vérifier l'authentification
-      const response = await this.getProfile(true);
-      return response.success === true;
-    } catch (error) {
+    }
+    return this.currentUser;
+  }
+
+  isAuthenticated(): boolean {
+    const user = this.getCurrentUser();
+    const isAuth = !!user;
+    console.log('🔍 Vérification authentification locale:', { isAuth, user: user?.email });
+    return isAuth;
+  }
+
+  // ✅ CORRECTION : Utilisation de la route /api/auth/profil
+  async checkSession(): Promise<boolean> {
+    try {
+      console.log('🔍 Vérification de la session serveur...');
+      
+      const response = await baseService.get<ProfilResponse>('/auth/profil');
+      
+      console.log('📡 Réponse session:', response);
+
+      if (response.success && response.utilisateur) {
+        // Mettre à jour les infos utilisateur
+        this.currentUser = response.utilisateur;
+        localStorage.setItem('user', JSON.stringify(response.utilisateur));
+        console.log('✅ Session valide, utilisateur mis à jour:', this.currentUser);
+        return true;
+      }
+      
+      console.warn('⚠️ Session invalide');
+      this.logout();
+      return false;
+    } catch (error: any) {
+      console.warn('⚠️ Erreur vérification session:', error.message);
+      
+      // Si erreur 401, session expirée
+      if (error.message?.includes('401') || error.message?.includes('Non authentifié')) {
+        console.log('🔒 Session expirée (401)');
+        this.logout();
+      }
+      
       return false;
     }
   }
-};
+
+  // ✅ AJOUT : Rafraîchir les données utilisateur
+  async refreshUserData(): Promise<AuthUser> {
+    const sessionValid = await this.checkSession();
+    if (!sessionValid || !this.currentUser) {
+      throw new Error('Session expirée - veuillez vous reconnecter');
+    }
+    return this.currentUser;
+  }
+
+  // ✅ AJOUT : Vérification avec gestion d'erreur spécifique
+  async ensureAuthenticated(): Promise<void> {
+    const isValid = await this.checkSession();
+    if (!isValid) {
+      throw new Error('Votre session a expiré. Veuillez vous reconnecter.');
+    }
+  }
+}
+
+export const authService = new AuthService();

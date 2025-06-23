@@ -1,107 +1,139 @@
 // src/components/ProductFileUpload.tsx
-import React, { useState, useRef, DragEvent, ChangeEvent } from 'react';
-import { filesService, FileUploadResponse } from '../services';
-import { useMateriaux } from '../hooks/useMateriaux';
-import { Material } from '../services/materials.service';
+import React, { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
+import { type FileClientUploadResponse, FileClientUploadData } from '../services/filesClient.service';
+import { useAuth } from '../hooks/useAuth';
+import type { Material } from '../services/materials.service';
 import '../assets/styles/FileUpload.css';
+import { filesClientService } from '../services/filesClient.service';
+import { useMaterials } from '../hooks/useMateriaux';
 
 interface ProductFileUploadProps {
-  onUploadSuccess?: (response: FileUploadResponse) => void;
+  onUploadSuccess?: (response: FileClientUploadResponse) => void;
   onUploadError?: (error: string) => void;
 }
 
-const ProductFileUpload: React.FC<ProductFileUploadProps> = ({ onUploadSuccess, onUploadError }) => {
-  const [isDragging, setIsDragging] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-  
-  // Champs spécifiques aux produits
-  const [nomProduit, setNomProduit] = useState<string>('');
-  const [description, setDescription] = useState<string>('');
-  const [licence, setLicence] = useState<string>('CC BY 4.0');
-  const [tags, setTags] = useState<string>('');
-  const [prix, setPrix] = useState<number>(0);
-  const [estGratuit, setEstGratuit] = useState<boolean>(true);
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+interface ProductMetadata {
+  nom: string;
+  description: string;
+  scaling: number;
+  selectedMaterialId: number | null;
+}
 
-  // Hook pour récupérer les matériaux
-  const { materiaux, loading: materialsLoading, error: materialsError } = useMateriaux();
+const ProductFileUpload: React.FC<ProductFileUploadProps> = ({ 
+  onUploadSuccess, 
+  onUploadError 
+}) => {
+  // ✅ CORRECTION : Utiliser useMaterials au lieu de useMateriaux
+  const { isAuthenticated, authLoading, refreshAuth } = useAuth();
+  const { materials, loading: materialsLoading, loadMaterials } = useMaterials(); // ✅ Correction
+  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  
+  // ✅ CORRECTION : Structure des données produit adaptée
+  const [productData, setProductData] = useState<ProductMetadata>({
+    nom: '',
+    description: '',
+    scaling: 100,
+    selectedMaterialId: null,
+  });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const allowedExtensions = ['stl', 'obj', 'ply', '3mf', 'amf'];
-  const maxSize = 100 * 1024 * 1024; // 100 MB
+  // Formats de fichiers acceptés
+  const acceptedFormats = ['.stl', '.obj', '.3mf', '.ply', '.amf'];
+  const maxFileSize = 50 * 1024 * 1024; // 50MB
 
-  const validateFile = (file: File): { isValid: boolean; error?: string } => {
-    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+  // ✅ Charger les matériaux au montage du composant
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadMaterials();
+    }
+  }, [isAuthenticated, loadMaterials]);
+
+  // Debug : Afficher l'état d'authentification
+  useEffect(() => {
+    console.log('🔍 Debug ProductFileUpload:');
+    console.log('- Auth Loading:', authLoading);
+    console.log('- Is Authenticated:', isAuthenticated);
+    console.log('- Materials:', materials.length);
+  }, [authLoading, isAuthenticated, materials]);
+
+  // Validation du fichier
+  const validateFile = (file: File): string[] => {
+    const errors: string[] = [];
     
-    if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
-      return {
-        isValid: false,
-        error: `Format non autorisé. Formats acceptés: ${allowedExtensions.join(', ').toUpperCase()}`
-      };
+    const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+    if (!acceptedFormats.includes(fileExtension)) {
+      errors.push(`Format non supporté. Formats acceptés: ${acceptedFormats.join(', ')}`);
     }
     
-    if (file.size > maxSize) {
-      return {
-        isValid: false,
-        error: 'Le fichier est trop volumineux. Taille maximale: 100 MB'
-      };
+    if (file.size > maxFileSize) {
+      errors.push(`Fichier trop volumineux. Taille maximale: ${maxFileSize / (1024 * 1024)}MB`);
     }
     
-    return { isValid: true };
+    return errors;
   };
 
-  const validateForm = (): { isValid: boolean; error?: string } => {
-    if (!selectedFile) {
-      return { isValid: false, error: 'Veuillez sélectionner un fichier' };
+  // ✅ CORRECTION : Validation des métadonnées produit adaptée
+  const validateProductData = (): string[] => {
+    const errors: string[] = [];
+    
+    if (!productData.nom.trim()) {
+      errors.push('Le nom du produit est requis');
     }
 
-    if (!nomProduit.trim()) {
-      return { isValid: false, error: 'Le nom du produit est requis' };
+    if (!productData.description.trim() || productData.description.trim().length < 10) {
+      errors.push('La description doit contenir au moins 10 caractères');
     }
 
-    if (!description.trim()) {
-      return { isValid: false, error: 'La description est requise' };
+    if (productData.scaling < 10 || productData.scaling > 1000) {
+      errors.push('Le scaling doit être entre 10% et 1000%');
     }
 
-    if (!selectedMaterial) {
-      return { isValid: false, error: 'Veuillez sélectionner un matériau' };
+    if (!productData.selectedMaterialId) {
+      errors.push('Veuillez sélectionner un matériau');
     }
-
-    if (!estGratuit && prix <= 0) {
-      return { isValid: false, error: 'Le prix doit être supérieur à 0 pour un produit payant' };
-    }
-
-    return { isValid: true };
+    
+    return errors;
   };
 
-  const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
+  // Gestion du drag & drop
+  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
     setIsDragging(true);
   };
 
   const handleDragLeave = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
     setIsDragging(false);
-  };
-
-  const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
   };
 
   const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    e.stopPropagation();
     setIsDragging(false);
     
     const files = Array.from(e.dataTransfer.files);
     if (files.length > 0) {
       handleFileSelection(files[0]);
+    }
+  };
+
+  // Gestion de la sélection de fichier
+  const handleFileSelection = (file: File) => {
+    const errors = validateFile(file);
+    setValidationErrors(errors);
+    
+    if (errors.length === 0) {
+      setSelectedFile(file);
+      // Auto-remplir le nom du produit avec le nom du fichier (sans extension)
+      if (!productData.nom) {
+        const fileName = file.name.replace(/\.[^/.]+$/, '');
+        setProductData(prev => ({ ...prev, nom: fileName }));
+      }
     }
   };
 
@@ -112,332 +144,303 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({ onUploadSuccess, 
     }
   };
 
-  const handleFileSelection = (file: File) => {
-    const validation = validateFile(file);
-    
-    if (!validation.isValid) {
-      setUploadMessage({ type: 'error', text: validation.error! });
-      setSelectedFile(null);
-      return;
-    }
-    
-    setSelectedFile(file);
-    setUploadMessage(null);
-    
-    // Auto-remplir le nom si pas déjà défini
-    if (!nomProduit.trim()) {
-      const fileName = file.name.split('.')[0];
-      setNomProduit(fileName);
-    }
+  // ✅ CORRECTION : Gestion des changements adaptée aux nouveaux types
+  const handleProductDataChange = (field: keyof ProductMetadata, value: string | number | null) => {
+    setProductData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
+
+
+  // ✅ CORRECTION : Upload du fichier avec FileClientUploadData
   const handleUpload = async () => {
-    const formValidation = validateForm();
-    if (!formValidation.isValid) {
-      setUploadMessage({ type: 'error', text: formValidation.error! });
+    if (!selectedFile || !productData.selectedMaterialId) return;
+
+    // Vérifier à nouveau l'authentification avant l'upload
+    if (!isAuthenticated) {
+      console.log('🔄 Tentative de rafraîchissement de l\'authentification...');
+      await refreshAuth();
+      
+      if (!isAuthenticated) {
+        onUploadError?.('Vous devez être connecté pour uploader des fichiers');
+        return;
+      }
+    }
+
+    const productErrors = validateProductData();
+    if (productErrors.length > 0) {
+      setValidationErrors(productErrors);
       return;
     }
 
-    if (!selectedFile || !selectedMaterial) return;
-    
-    setIsUploading(true);
-    setUploadMessage(null);
-    
     try {
-      const formData = new FormData();
-      formData.append('file3d', selectedFile);
-      formData.append('nom', nomProduit.trim());
-      formData.append('description', description.trim());
-      formData.append('licence', licence);
-      formData.append('prix', (estGratuit ? 0 : prix).toString());
-      formData.append('estGratuit', estGratuit.toString());
-      formData.append('materiauId', selectedMaterial.id.toString());
+      setIsUploading(true);
+      setUploadProgress(0);
+      setValidationErrors([]);
+
+      console.log('🚀 Début upload avec authentification vérifiée');
+      console.log('📁 Fichier:', selectedFile.name);
+      console.log('👤 Authentifié:', isAuthenticated);
       
-      if (tags.trim()) {
-        formData.append('tags', tags.trim());
-      }
-      
-      // Upload de produit (pas modèle client)
-      const response = await filesService.uploadProduct(formData);
-      
+      // ✅ CORRECTION : Créer l'objet FileClientUploadData
+      const uploadData: FileClientUploadData = {
+        file: selectedFile,
+        scaling: productData.scaling,
+        description: productData.description,
+        idMatériau: productData.selectedMaterialId
+      };
+
+      const response = await filesClientService.uploadFileClient(
+        uploadData,
+        (progress) => {
+          console.log(`📊 Progression: ${progress}%`);
+          setUploadProgress(progress);
+        }
+      );
+
       if (response.success) {
-        setUploadMessage({ type: 'success', text: response.message || 'Produit créé avec succès!' });
+        console.log('✅ Upload réussi:', response);
+        onUploadSuccess?.(response);
         
         // Reset du formulaire
         setSelectedFile(null);
-        setNomProduit('');
-        setDescription('');
-        setTags('');
-        setPrix(0);
-        setEstGratuit(true);
-        setLicence('CC BY 4.0');
-        setSelectedMaterial(null);
+        setProductData({
+          nom: '',
+          description: '',
+          scaling: 100,
+          selectedMaterialId: null,
+        });
+        setUploadProgress(0);
         
+        // Reset de l'input file
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        
-        onUploadSuccess?.(response);
       } else {
         throw new Error(response.message || 'Erreur lors de l\'upload');
       }
     } catch (error: any) {
-      const errorMessage = error.message || 'Erreur lors de l\'upload du produit';
-      setUploadMessage({ type: 'error', text: errorMessage });
-      onUploadError?.(errorMessage);
+      console.error('❌ Erreur upload:', error);
+      
+      // Gestion spécifique de l'erreur 401
+      if (error.message.includes('401') || error.message.includes('Non authentifié')) {
+        console.log('🔄 Erreur 401 - Tentative de rafraîchissement...');
+        await refreshAuth();
+        onUploadError?.('Session expirée, veuillez vous reconnecter');
+      } else {
+        onUploadError?.(error.message);
+      }
     } finally {
       setIsUploading(false);
     }
   };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  // Affichage pendant le chargement de l'authentification
+  if (authLoading) {
+    return (
+      <div className="file-upload-container">
+        <div className="loading-auth">
+          <i className="fas fa-spinner fa-spin"></i>
+          <p>Vérification de l'authentification...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const formatPrice = (price: number): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR'
-    }).format(price);
-  };
-
-  const clearSelection = () => {
-    setSelectedFile(null);
-    setUploadMessage(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  // Affichage si non authentifié
+  if (!isAuthenticated) {
+    return (
+      <div className="file-upload-container">
+        <div className="auth-required">
+          <i className="fas fa-lock"></i>
+          <h3>Authentification requise</h3>
+          <p>Vous devez être connecté pour uploader des fichiers 3D.</p>
+          <button 
+            onClick={refreshAuth}
+            className="btn btn-primary"
+          >
+            <i className="fas fa-refresh"></i>
+            Vérifier la connexion
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="file-upload-container product-upload">
-      <h2>
-        <i className="fas fa-box"></i>
-        Ajouter un nouveau produit
-      </h2>
-      
-      {/* Zone de drop pour le fichier */}
-      <div
+    <div className="file-upload-container">
+      <h2>Upload de modèle 3D</h2>
+
+      {/* Zone de drop */}
+      <div 
         className={`file-drop-zone ${isDragging ? 'dragging' : ''} ${selectedFile ? 'has-file' : ''}`}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
       >
         <input
           ref={fileInputRef}
           type="file"
-          accept=".stl,.obj,.ply,.3mf,.amf"
+          accept={acceptedFormats.join(',')}
           onChange={handleFileInputChange}
           style={{ display: 'none' }}
         />
         
-        {!selectedFile ? (
-          <>
-            <i className="fas fa-cloud-upload-alt"></i>
-            <h3>Glissez le fichier 3D du produit ici</h3>
-            <p>ou cliquez pour sélectionner</p>
-            <small>Formats acceptés: {allowedExtensions.join(', ').toUpperCase()} - Taille max: 100 MB</small>
-          </>
-        ) : (
+        {selectedFile ? (
           <div className="selected-file">
+            <i className="fas fa-cube"></i>
             <div className="file-info">
-              <i className="fas fa-cube"></i>
-              <div>
-                <h4>{selectedFile.name}</h4>
-                <p>{formatFileSize(selectedFile.size)}</p>
-              </div>
+              <h4>{selectedFile.name}</h4>
+              <p>{(selectedFile.size / (1024 * 1024)).toFixed(2)} MB</p>
             </div>
-            <button
-              type="button"
-              className="clear-file-button"
+            <button 
               onClick={(e) => {
                 e.stopPropagation();
-                clearSelection();
+                setSelectedFile(null);
+                if (fileInputRef.current) fileInputRef.current.value = '';
               }}
-              title="Supprimer la sélection"
+              className="btn-remove"
             >
               <i className="fas fa-times"></i>
             </button>
           </div>
+        ) : (
+          <div className="drop-message">
+            <i className="fas fa-cloud-upload-alt"></i>
+            <h3>Glissez votre fichier 3D ici</h3>
+            <p>ou cliquez pour sélectionner</p>
+            <p className="formats">Formats acceptés: {acceptedFormats.join(', ')}</p>
+          </div>
         )}
       </div>
 
-      {/* Informations du produit */}
+      {/* Erreurs de validation */}
+      {validationErrors.length > 0 && (
+        <div className="validation-errors">
+          {validationErrors.map((error, index) => (
+            <div key={index} className="error-message">
+              <i className="fas fa-exclamation-triangle"></i>
+              {error}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ✅ CORRECTION : Métadonnées du produit adaptées */}
       {selectedFile && (
-        <div className="product-information">
+        <div className="product-metadata">
           <h3>Informations du produit</h3>
           
-          <div className="form-row">
-            <div className="form-field">
-              <label htmlFor="nom">Nom du produit *</label>
-              <input
-                id="nom"
-                type="text"
-                value={nomProduit}
-                onChange={(e) => setNomProduit(e.target.value)}
-                placeholder="Ex: Figurine Dragon, Vase moderne..."
-                maxLength={100}
-                required
-              />
-            </div>
-
-            <div className="form-field">
-              <label htmlFor="licence">Licence</label>
-              <select
-                id="licence"
-                value={licence}
-                onChange={(e) => setLicence(e.target.value)}
-              >
-                <option value="CC BY 4.0">Creative Commons BY 4.0</option>
-                <option value="CC BY-SA 4.0">Creative Commons BY-SA 4.0</option>
-                <option value="CC BY-NC 4.0">Creative Commons BY-NC 4.0</option>
-                <option value="CC BY-NC-SA 4.0">Creative Commons BY-NC-SA 4.0</option>
-                <option value="Propriétaire">Licence propriétaire</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="description">Description *</label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Décrivez votre produit, ses caractéristiques, conseils d'impression..."
-              maxLength={1000}
-              rows={4}
-              required
-            />
-            <small>{description.length}/1000 caractères</small>
-          </div>
-
-          {/* Sélecteur de matériau */}
-          <div className="form-field">
-            <label htmlFor="materiau">Matériau recommandé *</label>
-            {materialsLoading ? (
-              <div className="material-loading">
-                <i className="fas fa-spinner fa-spin"></i>
-                Chargement des matériaux...
-              </div>
-            ) : materialsError ? (
-              <div className="material-error">
-                <i className="fas fa-exclamation-triangle"></i>
-                {materialsError}
-              </div>
-            ) : materiaux.length === 0 ? (
-              <div className="no-materials">
-                Aucun matériau disponible
-              </div>
-            ) : (
-              <>
-                <select
-                  id="materiau"
-                  value={selectedMaterial?.id || ''}
-                  onChange={(e) => {
-                    const materialId = Number(e.target.value);
-                    const material = materiaux.find(m => m.id === materialId);
-                    setSelectedMaterial(material || null);
-                  }}
-                  required
-                >
-                  <option value="">Sélectionnez un matériau</option>
-                  {materiaux.map((material) => (
-                    <option key={material.id} value={material.id}>
-                      {material.nom} - {material.couleur} ({formatPrice(material.prixParGramme)}/g)
-                    </option>
-                  ))}
-                </select>
-                
-                {selectedMaterial && (
-                  <div className="selected-material-info">
-                    <p><strong>Couleur :</strong> {selectedMaterial.couleur}</p>
-                    <p><strong>Prix :</strong> {formatPrice(selectedMaterial.prixParGramme)}/gramme</p>
-                    {selectedMaterial.description && (
-                      <p><strong>Description :</strong> {selectedMaterial.description}</p>
-                    )}
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="tags">Tags (optionnel)</label>
+          <div className="form-group">
+            <label>Nom du produit *</label>
             <input
-              id="tags"
               type="text"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="figurine, décoration, utilitaire... (séparés par des virgules)"
-              maxLength={200}
+              value={productData.nom}
+              onChange={(e) => handleProductDataChange('nom', e.target.value)}
+              placeholder="Nom de votre modèle 3D"
             />
-            <small>Ajoutez des mots-clés pour faciliter la recherche</small>
           </div>
 
-          <div className="pricing-section">
-            <div className="form-field checkbox-field">
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={estGratuit}
-                  onChange={(e) => setEstGratuit(e.target.checked)}
-                />
-                <span className="checkmark"></span>
-                Produit gratuit
-              </label>
+          <div className="form-row">
+            <div className="form-group">
+              <label>Scaling (%) *</label>
+              <input
+                type="number"
+                min="10"
+                max="1000"
+                step="1"
+                value={productData.scaling}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleProductDataChange('scaling', value ? parseInt(value) : 100);
+                }}
+                placeholder="100"
+              />
+              <small>Entre 10% et 1000%</small>
             </div>
 
-            {!estGratuit && (
-              <div className="form-field price-field">
-                <label htmlFor="prix">Prix (€)</label>
-                <input
-                  id="prix"
-                  type="number"
-                  min="0.01"
-                  step="0.01"
-                  value={prix}
-                  onChange={(e) => setPrix(Number(e.target.value))}
-                  placeholder="0.00"
-                />
-                <small>Prix de téléchargement du modèle 3D</small>
-              </div>
-            )}
+            <div className="form-group">
+              <label>Matériau *</label>
+              <select
+                value={productData.selectedMaterialId || ''}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleProductDataChange('selectedMaterialId', value ? parseInt(value) : null);
+                }}
+                disabled={materialsLoading}
+              >
+                <option value="">Sélectionner un matériau</option>
+                {materials?.filter(m => m.estDisponible).map((material: Material) => (
+                  <option key={material.id} value={material.id}>
+                    {material.nom} - {material.coutParGramme}€/g
+                  </option>
+                ))}
+              </select>
+              {materialsLoading && <small>Chargement des matériaux...</small>}
+            </div>
           </div>
+
+          <div className="form-group">
+            <label>Description *</label>
+            <textarea
+              value={productData.description}
+              onChange={(e) => handleProductDataChange('description', e.target.value)}
+              placeholder="Décrivez votre modèle 3D... (minimum 10 caractères)"
+              rows={4}
+              minLength={10}
+            />
+            <small>{productData.description.length}/10 caractères minimum</small>
+          </div>
+
+          {/* Aperçu du matériau sélectionné */}
+          {productData.selectedMaterialId && (
+            <div className="material-preview">
+              {(() => {
+                const selectedMaterial = materials.find(m => m.id === productData.selectedMaterialId);
+                if (!selectedMaterial) return null;
+                
+                return (
+                  <div className="material-info">
+                    <h4>📦 {selectedMaterial.nom}</h4>
+                    <p>{selectedMaterial.description}</p>
+                    <div className="material-cost">
+                      <span>Coût: <strong>{selectedMaterial.coutParGramme}€/gramme</strong></span>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Barre de progression */}
+      {isUploading && (
+        <div className="upload-progress">
+          <div className="progress-bar">
+            <div 
+              className="progress-fill" 
+              style={{ width: `${uploadProgress}%` }}
+            ></div>
+          </div>
+          <p>Upload en cours... {uploadProgress}%</p>
         </div>
       )}
 
       {/* Bouton d'upload */}
-      {selectedFile && (
-        <button
-          className="upload-button product-button"
-          onClick={handleUpload}
-          disabled={isUploading || !nomProduit.trim() || !description.trim() || !selectedMaterial}
-        >
-          {isUploading ? (
-            <>
-              <i className="fas fa-spinner fa-spin"></i>
-              Création en cours...
-            </>
-          ) : (
-            <>
-              <i className="fas fa-plus"></i>
-              Créer le produit
-            </>
-          )}
-        </button>
-      )}
-
-      {/* Message de statut */}
-      {uploadMessage && (
-        <div className={`upload-message ${uploadMessage.type}`}>
-          <i className={`fas ${uploadMessage.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
-          {uploadMessage.text}
+      {selectedFile && !isUploading && (
+        <div className="upload-actions">
+          <button 
+            onClick={handleUpload}
+            className="btn btn-primary btn-upload"
+            disabled={validationErrors.length > 0 || !productData.selectedMaterialId}
+          >
+            <i className="fas fa-upload"></i>
+            Uploader le fichier
+          </button>
         </div>
       )}
     </div>
