@@ -15,7 +15,7 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!email || !motDePasse) {
+    if (!email.trim() || !motDePasse.trim()) {
       setError('Veuillez remplir tous les champs');
       return;
     }
@@ -24,26 +24,29 @@ const LoginPage = () => {
       setLoading(true);
       setError('');
       
-      // Call login function from useAuth
-      const response = await login(email, motDePasse);
+      console.log('🔑 Tentative de connexion avec:', { email });
       
-      if (response.success) {
-        console.log('Connexion réussie:', response);
-        // Add notification if needed
-        alert(response.message || 'Connexion réussie!');
-        
-        // Redirect based on user role
-        if (response.utilisateur?.role === 'PROPRIETAIRE') {
-          navigate('/dashboard');
-        } else {
-          navigate('/');
-        }
-      } else {
-        setError(response.message || 'Échec de la connexion');
-      }
+      // ✅ La fonction login du hook ne retourne pas de response
+      // Elle gère la connexion et met à jour le contexte directement
+      await login(email.trim(), motDePasse);
+      
+      console.log('✅ Connexion réussie !');
+      
+      // ✅ Si on arrive ici, c'est que la connexion a réussi
+      // Rediriger vers le dashboard
+      navigate('/dashboard');
+      
     } catch (error: any) {
-      console.error('Erreur lors de la connexion:', error);
-      setError(error.message || 'Erreur lors de la connexion');
+      console.error('❌ Erreur lors de la connexion:', error);
+      
+      // Gérer différents types d'erreurs
+      if (error.message.includes('401') || error.message.includes('authentifié')) {
+        setError('Email ou mot de passe incorrect');
+      } else if (error.message.includes('réseau') || error.message.includes('serveur')) {
+        setError('Problème de connexion au serveur. Réessayez plus tard.');
+      } else {
+        setError(error.message || 'Erreur lors de la connexion');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,7 +64,12 @@ const LoginPage = () => {
           <div className="login-form">
             <h2>Connexion</h2>
             
-            {error && <div className="error-message">{error}</div>}
+            {error && (
+              <div className="error-message">
+                <i className="fa fa-exclamation-triangle"></i>
+                {error}
+              </div>
+            )}
             
             <form onSubmit={handleSubmit}>
               <div className="form-group">
@@ -75,6 +83,8 @@ const LoginPage = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Votre adresse email"
                     required
+                    disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -90,6 +100,8 @@ const LoginPage = () => {
                     onChange={(e) => setMotDePasse(e.target.value)}
                     placeholder="Votre mot de passe"
                     required
+                    disabled={loading}
+                    autoComplete="current-password"
                   />
                 </div>
               </div>
@@ -97,11 +109,35 @@ const LoginPage = () => {
               <button 
                 type="submit" 
                 className="login-button"
-                disabled={loading}
+                disabled={loading || !email.trim() || !motDePasse.trim()}
               >
-                {loading ? 'Connexion en cours...' : 'Se connecter'}
+                {loading ? (
+                  <>
+                    <i className="fa fa-spinner fa-spin"></i>
+                    Connexion en cours...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa fa-sign-in"></i>
+                    Se connecter
+                  </>
+                )}
               </button>
             </form>
+            
+            {/* ✅ Ajout d'un compte de test pour debug
+            {process.env.NODE_ENV === 'development' && (
+              <div style={{ 
+                marginTop: '20px', 
+                padding: '10px', 
+                background: '#f8f9fa', 
+                borderRadius: '4px',
+                fontSize: '12px',
+                color: '#666'
+              }}>
+                <strong>Test :</strong> client1@example.com / client1
+              </div>
+            )} */}
           </div>
         </div>
       </div>

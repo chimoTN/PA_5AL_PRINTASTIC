@@ -5,6 +5,7 @@ import LoginPage from './Pages/LoginPage';
 import ProfilePage from './Pages/ProfilePage';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
+import Dashboard from './Pages/Dashboard';
 
 export const Routeur = () => {
   return (
@@ -17,11 +18,19 @@ export const Routeur = () => {
             <Route path="/" element={<Accueil />} />
             
             {/* Routes d'authentification */}
-            <Route path="/login" element={<LoginPage />} />
+            <Route path="/connexion" element={<LoginPage />} />
             
             {/* Routes protégées */}
             <Route 
-              path="/profile" 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profil" 
               element={
                 <ProtectedRoute>
                   <ProfilePage />
