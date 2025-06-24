@@ -1,7 +1,17 @@
 // src/hooks/useAuth.tsx
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService } from '../services/auth.service';
+import { authService } from '../Services/auth.service';
 import type { AuthUser, AuthContextType } from '../services/base.service';
+
+
+interface AuthContextType {
+  user: any | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, motDePasse: string) => Promise<any>;
+  logout: () => Promise<void>;
+  // Autres méthodes...
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 

@@ -4,7 +4,10 @@ import { Accueil } from './Pages/Accueil';
 import LoginPage from './Pages/LoginPage';
 import ProfilePage from './Pages/ProfilePage';
 import Navbar from './components/Navbar';
-import ProtectedRoute from './components/ProtectedRoute';
+import ProtectedRoute from './routes/ProtectedRoute';
+import ProductDetails from './Pages/ProductDetails';
+import CartPage from './Pages/shoppingCart';
+import Erreur from './Pages/Erreur';
 import Dashboard from './Pages/Dashboard';
 
 export const Routeur = () => {
@@ -14,11 +17,13 @@ export const Routeur = () => {
         <Navbar />
         <main className="main-content">
           <Routes>
-            {/* Route d'accueil publique - doit être configurée explicitement */}
+            <Route path="/erreur" element={<Erreur />} />
             <Route path="/" element={<Accueil />} />
             
             {/* Routes d'authentification */}
-            <Route path="/connexion" element={<LoginPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
+            <Route path="/shoppingCart" element={<CartPage />} />
             
             {/* Routes protégées */}
             <Route 

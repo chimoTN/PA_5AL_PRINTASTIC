@@ -6,7 +6,7 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: calc(100vh - 60px); /* Ajustement pour la navbar */
+  min-height: 94vh;
   width: 100%;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   font-family: 'Roboto', sans-serif;
