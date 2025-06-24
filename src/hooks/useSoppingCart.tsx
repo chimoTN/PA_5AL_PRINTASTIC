@@ -1,8 +1,8 @@
 // src/hooks/useCart.ts
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 
 type CartItem = {
-  id: string;
+  id: number;
   name: string;
   price: number;
   quantity: number;
@@ -12,14 +12,33 @@ type CartItem = {
 type CartContextType = {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (id: string) => void;
+  removeFromCart: (id: number) => void;
   clearCart: () => void;
 };
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const LOCAL_STORAGE_KEY = 'printastic-cart';
+
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  // ✅ 1. Charger depuis localStorage une seule fois au démarrage
+  useEffect(() => {
+    const storedCart = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (storedCart) {
+      try {
+        setCart(JSON.parse(storedCart));
+      } catch (error) {
+        console.error('❌ Erreur de parsing du panier localStorage', error);
+      }
+    }
+  }, []);
+
+  // ✅ 2. Sauvegarder dans localStorage à chaque changement du panier
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cart));
+  }, [cart]);
 
   const addToCart = (item: CartItem) => {
     setCart(prev =>
@@ -31,11 +50,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const removeFromCart = (id: string) => {
+  const removeFromCart = (id: number) => {
     setCart(prev => prev.filter(item => item.id !== id));
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    localStorage.removeItem(LOCAL_STORAGE_KEY); // facultatif
+  };
 
   return (
     <CartContext.Provider value={{ cart, addToCart, removeFromCart, clearCart }}>

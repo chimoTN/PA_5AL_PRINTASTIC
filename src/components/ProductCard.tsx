@@ -5,10 +5,12 @@ import { Button } from 'react-bootstrap';
 import { useCart } from '../hooks/useSoppingCart';
 
 type ProductCardProps = {
-  id: string;
+  id: number;
   name: string;
   price: number;
   imageUrl: string;
+  description: string;
+  modelUrl: string;
 };
 
 const ProductCard: React.FC<ProductCardProps> = ({
@@ -16,14 +18,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
   name,
   price,
   imageUrl,
+  description,
+  modelUrl,
 }) => {
 
     const { addToCart } = useCart();
     const navigate = useNavigate();
 
     const goToProductPage = () => {
-        navigate(`/produits/ProductDetails`);
+    navigate(`/produits/ProductDetails/${id}`, {
+        state: { id, name, price, imageUrl, description, modelUrl }
+    });
     };
+
 
     const handleAddToCart = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -74,7 +81,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             </Button>
         </div>
 
-        <p style={{ margin: 0, color: '#333' }}>{price.toFixed(2)} €</p>
+        <p style={{ margin: 0, color: '#333' }}>{price} €</p>
         </div>
     );
 };

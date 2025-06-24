@@ -1,26 +1,22 @@
-import React from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 import { Container, Button } from 'react-bootstrap';
-import figurine from '../assets/images/produits/figurine.png';
-import '../assets/styles/productDetail.css'
+import '../assets/styles/productDetail.css';
 import { useCart } from '../hooks/useSoppingCart';
-import caddie from '../assets/images/caddie.png';
+import ModelViewerModal from '../components/ModelViewerModal';
 
-const mockProduct = {
-  id: '1',
-  name: 'Dragon PLA',
-  price: 14.99,
-  description: `Cette figurine dragon est imprimée en PLA haute qualité.\nParfaite pour les amateurs de fantasy, jeux de rôle ou décoration.`,
-  imageUrl: figurine,
-};
+const ProductDetails: React.FC = () => {
 
-
-
-const ProductDetails = () => {
   const { id } = useParams();
-  const product = mockProduct;
+  const location = useLocation();
+  const product = location.state;
 
+  if (!product) return <p>Produit non trouvé.</p>;
+
+  const { name, price, description, imageUrl, modelUrl } = product;
   const { addToCart } = useCart();
+
+  const [showModal, setShowModal] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -34,37 +30,82 @@ const ProductDetails = () => {
   };
 
   return (
-    <Container style={{ paddingTop: '60px', minHeight: '100vh' }}>
-      <div className="product-grid">
-        {/* IMAGE à gauche */}
-        <div className="product-image">
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="img-fluid rounded shadow"
-          />
-        </div>
+    <>
+      <Container style={{ paddingTop: '60px', minHeight: '100vh' }}>
+        <div className="product-grid">
+          {/* IMAGE à gauche */}
+          <div className="product-image">
+            <img
+              src={imageUrl}
+              alt={name}
+              className="img-fluid rounded shadow"
+            />
+          </div>
 
-        {/* INFOS à droite */}
-        <div className="product-info">
-          <h1>{product.name}</h1>
-          <h3 className="text-primary">{product.price.toFixed(2)} €</h3>
-          <p style={{ whiteSpace: 'pre-line' }}>{product.description}</p>
+          {/* INFOS à droite */}
+          <div className="product-info">
+            <h1>{name}</h1>
+            <h3 className="text-primary">{price} €</h3>
+            <p style={{ whiteSpace: 'pre-line' }}>{description}</p>
 
-          <Button
+            <Button
               variant="primary"
               onClick={handleAddToCart}
-              style={{ padding: '6px 10px' }}
-          >
-            Ajouter au panier
-            <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
-          </Button>
+            >
+              Ajouter au panier
+            </Button>
 
-          <br />
-          <Button variant="outline-secondary">Voir le modèle 3D</Button>
+
+            <br />
+          
+            <Button
+              variant="outline-secondary"
+              onClick={() => setShowModal(true)}
+            >
+              Voir le modèle 3D
+            </Button>
+
+            <ModelViewerModal
+              show={showModal}
+              onHide={() => setShowModal(false)}
+              modelUrl={modelUrl}
+            />
+
+          </div>
         </div>
-      </div>
-    </Container>
+      </Container>
+
+      <Container style={{ paddingBottom: '60px' }}>
+        <h4 className="mb-3 mt-5">Description produit</h4>
+        <hr />
+
+        <table className="table table-bordered">
+          <thead>
+            <tr>
+              <th>Matricule</th>
+              <th>Nom</th>
+              <th>Matériaux</th>
+              <th>Taille</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>PRT-{id}</td>
+              <td>{name}</td>
+              <td>Résine PLA</td>
+              <td>8 cm x 5 cm</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p className="mt-4">
+          Ceci est une description factice en attendant les données réelles en base.
+          Ce produit est idéal pour les collectionneurs de figurines imprimées en 3D
+          avec une finition de haute qualité.
+        </p>
+      </Container>
+
+    </>
   );
 };
 

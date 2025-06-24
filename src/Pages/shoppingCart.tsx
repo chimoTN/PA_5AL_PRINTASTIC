@@ -38,7 +38,7 @@ const CartPage = () => {
                             </Col>
                             <Col xs={5} style={{marginLeft: "60px"}}>
                                 <h5>{item.name}</h5>
-                                <p>{item.price.toFixed(2)} € x {item.quantity}</p>
+                                <p>{item.price} € x {item.quantity}</p>
                                 <p> Retouner voir le produits</p>
                             </Col>
                             <Col xs={4} className="text-end" style={{marginLeft: "60px"}}>

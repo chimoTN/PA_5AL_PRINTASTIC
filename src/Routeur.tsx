@@ -7,6 +7,7 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from './routes/ProtectedRoute';
 import ProductDetails from './Pages/ProductDetails';
 import CartPage from './Pages/shoppingCart';
+import Erreur from './Pages/Erreur';
 
 export const Routeur = () => {
   return (
@@ -15,9 +16,10 @@ export const Routeur = () => {
         <Navbar />
         <main className="main-content">
           <Routes>
+            <Route path="/erreur" element={<Erreur />} />
             <Route path="/" element={<Accueil />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/produits/ProductDetails" element={<ProductDetails />} />
+            <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
             <Route path="/shoppingCart" element={<CartPage />} />
 
             {/* Routes protégées */}

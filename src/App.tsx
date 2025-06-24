@@ -4,7 +4,7 @@ import { CartProvider } from './hooks/useSoppingCart';
 import Routeur from './Routeur';
 import './assets/styles/App.css'
 import './assets/styles/global.css';
-
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   return (
@@ -16,3 +16,5 @@ function App() {
   );
 }
 export default App;
+
+
