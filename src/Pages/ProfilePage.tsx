@@ -91,23 +91,6 @@ const ProfilePage = () => {
           <div className="profile-card">
             <div className="card-header">
               <h2>Informations personnelles</h2>
-              {!isEditing ? (
-                <button className="edit-button" onClick={handleEdit}>
-                  <i className="fas fa-edit"></i>
-                  Modifier
-                </button>
-              ) : (
-                <div className="edit-actions">
-                  <button className="save-button" onClick={handleSave}>
-                    <i className="fas fa-check"></i>
-                    Sauvegarder
-                  </button>
-                  <button className="cancel-button" onClick={handleCancel}>
-                    <i className="fas fa-times"></i>
-                    Annuler
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="card-content">
@@ -200,6 +183,33 @@ const ProfilePage = () => {
             <div className="actions-card">
               <h3>Actions du compte</h3>
               
+                <div className="action-item">
+                  <div className="action-info">
+                    <i className="fas fa-edit"></i>
+                    <div>
+                      <h4>Changer les informations personnels</h4>
+                      <p>Modifiez vos donnée</p>
+                    </div>
+                  </div>
+                    {!isEditing ? (
+                      <button className="action-button secondary" onClick={handleEdit}>
+                        Modifier
+                      </button>
+                    ) : (
+                      <div>
+                        <button className="action-button secondary" onClick={handleSave}>
+                          <i className="fas fa-check"></i>
+                          Sauvegarder
+                        </button>
+                        <button className="action-button danger" onClick={handleCancel}>
+                          <i className="fas fa-times"></i>
+                          Annuler
+                        </button>
+                      </div>
+                    )}
+                    
+                </div>
+
               <div className="action-item">
                 <div className="action-info">
                   <i className="fas fa-key"></i>

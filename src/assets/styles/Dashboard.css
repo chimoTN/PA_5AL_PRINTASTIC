@@ -25,6 +25,15 @@
   text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
 }
 
+.dashboard-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
 .welcome-message {
   color: rgba(255,255,255,0.9);
   font-size: 1.2rem;
@@ -45,9 +54,9 @@
 }
 
 .tab-button {
-  background: transparent;
+  background: #f0f0f0; /* fond gris clair par défaut */
   border: none;
-  color: rgba(255,255,255,0.8);
+  color: #333; /* texte sombre */
   padding: 1rem 2rem;
   border-radius: 25px;
   font-size: 1rem;
@@ -58,18 +67,20 @@
   align-items: center;
   gap: 0.5rem;
   white-space: nowrap;
+  margin-right: 40px;
 }
 
 .tab-button:hover {
-  color: white;
-  background: rgba(255,255,255,0.1);
+  background: #e0e0e0;
+  color: #000;
 }
 
 .tab-button.active {
-  background: white;
-  color: #667eea;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+  background: #667eea; /* couleur d'accent */
+  color: white;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
+
 
 /* Contenu des onglets */
 .tab-content {
@@ -225,6 +236,8 @@
 }
 
 .stat-card {
+  flex: 1 1 220px;
+  max-width: 250px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 2rem;
@@ -233,6 +246,18 @@
   box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
   transition: transform 0.3s ease;
 }
+
+/*
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2rem;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+  transition: transform 0.3s ease;
+}
+*/
 
 .stat-card:hover {
   transform: translateY(-5px);

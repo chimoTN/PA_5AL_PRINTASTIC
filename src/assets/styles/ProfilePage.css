@@ -1,3 +1,83 @@
+.profile-content {
+  display: flex;
+  gap: 5rem;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+/* Partie gauche : infos utilisateur */
+.profile-card {
+  flex: 2;
+  min-width: 300px;
+}
+
+/* Partie droite : actions utilisateur */
+.profile-actions {
+  flex: 1;
+  min-width: 250px;
+}
+
+/* Carte actions blanche */
+.actions-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  padding: 2rem;
+}
+
+/* Ajustement action-item */
+.action-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+  gap: 1rem;
+}
+
+.action-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.action-info i {
+  font-size: 1.3rem;
+  color: #667eea;
+}
+
+.action-button {
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: 0.3s;
+  white-space: nowrap;
+}
+
+.action-button.secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.action-button.secondary:hover {
+  background: #e0e0e0;
+}
+
+.action-button.danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.action-button.danger:hover {
+  background: #c0392b;
+}
+
+
 /* src/assets/styles/ProfilePage.css */
 .profile-page {
   min-height: calc(100vh - 60px);
@@ -6,7 +86,7 @@
 }
 
 .profile-container {
-  max-width: 800px;
+  max-width: 1000px;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -36,6 +116,8 @@
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   padding: 2rem;
   margin-bottom: 2rem;
+  flex: 2;
+  min-width: 300px;
 }
 
 .profile-info {
@@ -119,7 +201,8 @@
   display: flex;
   justify-content: center;
   gap: 1rem;
-  margin-top: 2rem;
+  flex: 1;
+  min-width: 260px;
 }
 
 .profile-button {
