@@ -20,7 +20,7 @@ export interface AuthResponse {
 export interface AuthContextType {
   isAuthenticated: boolean;
   user: AuthUser | null;
-  authLoading: boolean;
+  isLoading: boolean;
   error: string | null;
   login: (email: string, motDePasse: string) => Promise<void>;
   logout: () => Promise<void>;

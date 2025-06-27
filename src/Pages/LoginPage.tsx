@@ -24,25 +24,23 @@ const LoginPage = () => {
       setLoading(true);
       setError('');
       
-      console.log('🔑 Tentative de connexion avec:', { email });
+      console.log('🔑 Tentative de connexion avec:', { email: email.trim() });
       
-      // ✅ La fonction login du hook ne retourne pas de response
-      // Elle gère la connexion et met à jour le contexte directement
       await login(email.trim(), motDePasse);
       
       console.log('✅ Connexion réussie !');
       
-      // ✅ Si on arrive ici, c'est que la connexion a réussi
-      // Rediriger vers le dashboard
-      navigate('/dashboard');
+      // ✅ Petite temporisation pour laisser le contexte se mettre à jour
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 100);
       
     } catch (error: any) {
       console.error('❌ Erreur lors de la connexion:', error);
       
-      // Gérer différents types d'erreurs
-      if (error.message.includes('401') || error.message.includes('authentifié')) {
+      if (error.message?.includes('401') || error.message?.includes('authentifié')) {
         setError('Email ou mot de passe incorrect');
-      } else if (error.message.includes('réseau') || error.message.includes('serveur')) {
+      } else if (error.message?.includes('réseau') || error.message?.includes('serveur')) {
         setError('Problème de connexion au serveur. Réessayez plus tard.');
       } else {
         setError(error.message || 'Erreur lors de la connexion');
@@ -51,6 +49,7 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="login-page">

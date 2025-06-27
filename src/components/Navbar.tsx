@@ -8,18 +8,21 @@ import { useCart } from '../hooks/useSoppingCart';
 
 const Navbar = () => {
   const navigate = useNavigate();
- const { isAuthenticated, logout, authLoading, user } = useAuth(); 
- 
-   const { cart } = useCart();
+  const { isAuthenticated, logout, isLoading, user } = useAuth(); 
+  const { cart } = useCart();
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleLogout = async () => {
-    await logout();
-    navigate('/');
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Erreur lors de la déconnexion:', error);
+      navigate('/');
+    }
   };
 
   return (
-
     <nav className="navbar">
       <div className="navbar-logo">
         <Link to="/" className="navbar-link">
@@ -33,7 +36,7 @@ const Navbar = () => {
           <i className="fas fa-home"></i>
           Accueil
         </Link>
-        {!authLoading && isAuthenticated && (
+        {!isLoading && isAuthenticated && (
           <>
             <Link to="/dashboard" className="navbar-item">
               <i className="fas fa-tachometer-alt"></i>
@@ -45,16 +48,16 @@ const Navbar = () => {
             </Link>
           </>
         )}
-        {/* Autres liens du menu */}
       </div>
       
       <div className="navbar-actions">
-        {authLoading ? (
+        {/* ✅ Section Authentification */}
+        {isLoading ? (
           <div className="loading-indicator">
             <i className="fas fa-spinner fa-spin"></i>
             <span>Chargement...</span>
           </div>
-         ) : isAuthenticated ? (
+        ) : isAuthenticated ? (
           <div className="user-menu">
             {user && (
               <span className="user-welcome">
@@ -66,42 +69,62 @@ const Navbar = () => {
               Déconnexion
             </button>
           </div>
-          ) : (
-            <Link to="/connexion" className="login-button">
-              <i className="fas fa-sign-in-alt"></i>
-              Connexion
-            </Link>
-          )}
-          <div style={{ position: 'relative' }}>
-            <Button
-              variant="primary"
-              style={{ padding: '6px 10px' }}
-              onClick={() => navigate('/shoppingCart')}
+        ) : (
+          <Link to="/LoginPage" className="login-button">
+            <i className="fas fa-sign-in-alt"></i>
+            Connexion
+          </Link>
+        )}
+
+        {/* ✅ Section Panier - Toujours visible */}
+        <div className="cart-container" style={{ position: 'relative', marginLeft: '15px' }}>
+          <Button
+            variant="primary"
+            style={{ 
+              padding: '6px 10px',
+              display: 'flex',
+              alignItems: 'center',
+              backgroundColor: '#007bff',
+              border: 'none'
+            }}
+            onClick={() => navigate('/shoppingCart')}
+            title={`Panier (${totalItems} articles)`}
+          >
+            <img 
+              src={caddie} 
+              alt="Caddie" 
+              style={{ width: 20, height: 20 }} 
+            />
+          </Button>
+
+          {/* ✅ Badge du nombre d'articles */}
+          {totalItems > 0 && (
+            <span
+              className="cart-badge"
+              style={{
+                position: 'absolute',
+                top: '-8px',
+                right: '-8px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                borderRadius: '50%',
+                padding: '2px 6px',
+                fontSize: '0.7rem',
+                fontWeight: 'bold',
+                minWidth: '18px',
+                height: '18px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '2px solid white'
+              }}
             >
-              <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
-            </Button>
-
-            {totalItems > 0 && (
-              <span
-                style={{
-                  position: 'absolute',
-                  top: '-5px',
-                  right: '-5px',
-                  backgroundColor: 'red',
-                  color: 'white',
-                  borderRadius: '50%',
-                  padding: '2px 6px',
-                  fontSize: '0.7rem',
-                  fontWeight: 'bold',
-                }}
-              >
-                {totalItems}
-              </span>
-            )}
-          </div>
-          </div>
+              {totalItems > 99 ? '99+' : totalItems}
+            </span>
+          )}
+        </div>
+      </div>
     </nav>
-
   );
 };
 

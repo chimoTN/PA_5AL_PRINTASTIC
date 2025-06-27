@@ -2,8 +2,8 @@
 import React, { useRef, useState, useCallback } from 'react';
 import { useFilesClient } from '../hooks/useFilesClient';
 import { useAuth } from '../hooks/useAuth';
-import { authService } from '../services/auth.service';
 import MaterialSelector from './MaterialSelector';
+import { authService } from '../services';
 import { Material } from '../services/materials.service';
 
 interface FileClientUploadProps {
@@ -39,7 +39,7 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
     isValid3DFile 
   } = useFilesClient();
   
-  const { isAuthenticated, authLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   // États pour les champs
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -90,13 +90,18 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
 
     // Vérification de session serveur
     try {
-      await authService.ensureAuthenticated();
+      const sessionValid = await authService.checkSession();
+      if (!sessionValid) {
+        throw new Error('Session expirée - veuillez vous reconnecter');
+      }
     } catch (error: any) {
       const errorMsg = error.message || 'Session expirée - veuillez vous reconnecter';
       setValidationErrors(prev => ({ ...prev, file: errorMsg }));
       onUploadError?.(errorMsg);
       return;
     }
+
+
 
     // Validation du fichier
     if (!isValid3DFile(file.name)) {
@@ -265,7 +270,7 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
   }, []);
 
   // Affichage pendant le chargement de l'authentification
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="file-client-upload">
         <div className="upload-area disabled" style={{

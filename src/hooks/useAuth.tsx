@@ -1,16 +1,16 @@
 // src/hooks/useAuth.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { authService } from '../Services/auth.service';
-import type { AuthUser, AuthContextType } from '../services/base.service';
-
+import { AuthUser } from '../Services/base.service';
 
 interface AuthContextType {
-  user: any | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, motDePasse: string) => Promise<any>;
+  error: string | null;
+  login: (email: string, motDePasse: string) => Promise<void>;
   logout: () => Promise<void>;
-  // Autres méthodes...
+  refreshAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,18 +22,17 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [authLoading, setAuthLoading] = useState<boolean>(true); // ✅ État authLoading
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ Fonction de vérification d'authentification utilisant votre authService
-  const refreshAuth = async (): Promise<void> => {
+  // ✅ useCallback pour éviter les re-renders inutiles
+  const refreshAuth = useCallback(async (): Promise<void> => {
     try {
-      setAuthLoading(true);
+      setIsLoading(true);
       setError(null);
       
       console.log('🔄 Vérification de l\'authentification...');
       
-      // ✅ Utiliser votre méthode checkSession
       const sessionValid = await authService.checkSession();
       
       if (sessionValid) {
@@ -43,6 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           setIsAuthenticated(true);
           console.log('✅ Authentification confirmée:', currentUser);
         } else {
+          console.log('⚠️ Session valide mais pas de données utilisateur');
           setUser(null);
           setIsAuthenticated(false);
         }
@@ -57,25 +57,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
       setError(error.message);
     } finally {
-      setAuthLoading(false);
+      setIsLoading(false);
     }
-  };
+  }, []);
 
-  // ✅ Fonction login utilisant votre authService
   const login = async (email: string, motDePasse: string): Promise<void> => {
     try {
-      setAuthLoading(true);
+      setIsLoading(true);
       setError(null);
       
       console.log('🔑 Tentative de connexion...');
       
-      // ✅ Utiliser votre méthode login (qui prend password comme 2ème param)
       const response = await authService.login(email, motDePasse);
       
-      if (response.success && response.utilisateur) {
-        setUser(response.utilisateur);
+      // ✅ Gestion flexible des noms de propriétés
+      const userData = response.utilisateur || response.user;
+      
+      if (response.success && userData) {
+        setUser(userData);
         setIsAuthenticated(true);
-        console.log('✅ Connexion réussie:', response.utilisateur);
+        console.log('✅ Connexion réussie:', userData);
       } else {
         throw new Error(response.message || 'Échec de la connexion');
       }
@@ -86,17 +87,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsAuthenticated(false);
       throw error;
     } finally {
-      setAuthLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // ✅ Fonction logout utilisant votre authService
   const logout = async (): Promise<void> => {
     try {
-      setAuthLoading(true);
+      setIsLoading(true);
       console.log('🚪 Déconnexion...');
       
-      // ✅ Utiliser votre méthode logout
       await authService.logout();
       
       setUser(null);
@@ -106,46 +105,70 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.log('✅ Déconnexion réussie');
     } catch (error: any) {
       console.error('❌ Erreur déconnexion:', error);
-      // Même en cas d'erreur, on déconnecte localement
+      // ✅ Forcer la déconnexion locale même en cas d'erreur
       setUser(null);
       setIsAuthenticated(false);
       setError(null);
     } finally {
-      setAuthLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // ✅ Vérification initiale au chargement
+  // ✅ useEffect optimisé
   useEffect(() => {
-    // Vérifier d'abord si on a un utilisateur en localStorage
-    const localUser = authService.getCurrentUser();
-    if (localUser) {
-      console.log('👤 Utilisateur trouvé dans localStorage:', localUser);
-      setUser(localUser);
-      setIsAuthenticated(true);
-      setAuthLoading(false);
-      
-      // Puis vérifier la session en arrière-plan
-      authService.checkSession().then(sessionValid => {
-        if (!sessionValid) {
-          console.log('⚠️ Session expirée, déconnexion...');
+    let isMounted = true; // ✅ Éviter les updates sur composant démonté
+    
+    const initializeAuth = async () => {
+      try {
+        const localUser = authService.getCurrentUser();
+        
+        if (localUser && isMounted) {
+          console.log('👤 Utilisateur trouvé dans localStorage:', localUser);
+          setUser(localUser);
+          setIsAuthenticated(true);
+          
+          // ✅ Vérifier en arrière-plan si la session est toujours valide
+          try {
+            const sessionValid = await authService.checkSession();
+            if (!sessionValid && isMounted) {
+              console.log('⚠️ Session expirée, nettoyage...');
+              setUser(null);
+              setIsAuthenticated(false);
+            }
+          } catch (sessionError) {
+            console.warn('⚠️ Erreur vérification session arrière-plan:', sessionError);
+            // Ne pas déconnecter sur les erreurs réseau temporaires
+          }
+        } else {
+          // ✅ Pas d'utilisateur local, vérifier le serveur
+          await refreshAuth();
+        }
+      } catch (error) {
+        console.warn('⚠️ Erreur initialisation auth:', error);
+        if (isMounted) {
           setUser(null);
           setIsAuthenticated(false);
+          setIsLoading(false);
         }
-      }).catch(() => {
-        // Ignorer les erreurs de vérification en arrière-plan
-      });
-    } else {
-      // Pas d'utilisateur local, vérifier la session
-      refreshAuth();
-    }
-  }, []);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
 
-  // ✅ Valeur du contexte avec tous les champs requis
+    initializeAuth();
+    
+    // ✅ Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshAuth]);
+
   const contextValue: AuthContextType = {
     isAuthenticated,
     user,
-    authLoading, // ✅ Maintenant disponible
+    isLoading,
     error,
     login,
     logout,
@@ -159,7 +182,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-// ✅ Hook useAuth
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
