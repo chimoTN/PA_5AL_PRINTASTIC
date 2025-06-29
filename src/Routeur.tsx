@@ -9,6 +9,7 @@ import ProductDetails from './Pages/ProductDetails';
 import CartPage from './Pages/shoppingCart';
 import Erreur from './Pages/Erreur';
 import Dashboard from './Pages/Dashboard';
+import CheckoutPage from './Pages/validationPanier';
 
 export const Routeur = () => {
   return (
@@ -24,7 +25,7 @@ export const Routeur = () => {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
             <Route path="/shoppingCart" element={<CartPage />} />
-            
+            <Route path="/validation/Panier" element={<CheckoutPage />} />
             {/* Routes protégées */}
             <Route 
               path="/dashboard" 
