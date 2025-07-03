@@ -1,4 +1,4 @@
-// src/components/Navbar.tsx
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import '../assets/styles/Navbar.css';
@@ -6,9 +6,9 @@ import caddie from '../assets/images/caddie.png';
 import { Button } from 'react-bootstrap';
 import { useCart } from '../hooks/useSoppingCart';
 
-const Navbar = () => {
+const Navbar: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, logout, isLoading, user } = useAuth(); 
+  const { isAuthenticated, logout, isLoading, user } = useAuth();
   const { cart } = useCart();
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -30,28 +30,51 @@ const Navbar = () => {
           PRINTASTIC
         </Link>
       </div>
-      
+
       <div className="navbar-menu">
         <Link to="/" className="navbar-item">
           <i className="fas fa-home"></i>
           Accueil
         </Link>
-        {!isLoading && isAuthenticated && (
-          <>
-            <Link to="/dashboard" className="navbar-item">
-              <i className="fas fa-tachometer-alt"></i>
-              Mon espace
-            </Link>
-            <Link to="/profil" className="navbar-item">
-              <i className="fas fa-user"></i>
-              Profil
-            </Link>
+
+        {/* Affichage selon le rôle */}
+        {!isLoading && isAuthenticated && user && (
+          <>  
+            {user.role === 'PROPRIETAIRE' && (
+              <Link to="/dashboard/admin" className="navbar-item">
+                <i className="fas fa-cogs"></i>
+                Dashboard Admin
+              </Link>
+            )}
+
+            {user.role === 'CLIENT' && (
+              <>
+                <Link to="/dashboard/client" className="navbar-item">
+                  <i className="fas fa-tachometer-alt"></i>
+                  Dashboard Client
+                </Link>
+                <Link to="/profil" className="navbar-item">
+                  <i className="fas fa-user"></i>
+                  Profil
+                </Link>
+                <Link to="/commande" className="navbar-item">
+                  <i className="fas fa-user"></i>
+                  commande
+                </Link>
+              </>
+            )}
+
+            {user.role === 'IMPRIMEUR' && (
+              <Link to="/dashboard/impression" className="navbar-item">
+                <i className="fas fa-print"></i>
+                Dashboard Impression
+              </Link>
+            )}
           </>
         )}
       </div>
-      
+
       <div className="navbar-actions">
-        {/* ✅ Section Authentification */}
         {isLoading ? (
           <div className="loading-indicator">
             <i className="fas fa-spinner fa-spin"></i>
@@ -70,13 +93,13 @@ const Navbar = () => {
             </button>
           </div>
         ) : (
-          <Link to="/LoginPage" className="login-button">
+          <Link to="/login" className="login-button">
             <i className="fas fa-sign-in-alt"></i>
             Connexion
           </Link>
         )}
 
-        {/* ✅ Section Panier - Toujours visible */}
+        {/* Panier toujours visible */}
         <div className="cart-container" style={{ position: 'relative', marginLeft: '15px' }}>
           <Button
             variant="primary"
@@ -97,7 +120,6 @@ const Navbar = () => {
             />
           </Button>
 
-          {/* ✅ Badge du nombre d'articles */}
           {totalItems > 0 && (
             <span
               className="cart-badge"

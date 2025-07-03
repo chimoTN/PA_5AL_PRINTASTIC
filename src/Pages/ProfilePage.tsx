@@ -32,7 +32,6 @@ const ProfilePage = () => {
 
   const handleSave = async () => {
     // TODO: Implémenter la sauvegarde des modifications
-    console.log('Sauvegarde des modifications:', editedUser);
     setIsEditing(false);
     // Ici, vous pourriez appeler une API pour sauvegarder les modifications
   };

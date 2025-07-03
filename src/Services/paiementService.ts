@@ -1,12 +1,11 @@
 import axios from 'axios';
 
-const API_BACK = 'http://localhost:3000/api'; // ← adapte selon ton backend
-const STRIPE_BACK = 'http://localhost:3000/stripe'; // ← si tu as un endpoint dédié à Stripe
+const API_BACK = 'http://localhost:3000/api';
 
 export const paiementService = {
   // 🔸 Appel backend pour créer un PaymentIntent Stripe
   async creerPaymentIntent(montantCents: number) {
-    const res = await axios.post(`${STRIPE_BACK}/create-payment-intent`, {
+    const res = await axios.post(`${API_BACK}/create-payment-intent`, {
       amount: montantCents,
     });
     return res.data; // { clientSecret: "pi_xxx_secret_..." }
@@ -22,11 +21,16 @@ export const paiementService = {
 
   // 🔸 Enregistre le paiement finalisé dans ton backend (optionnel)
   async enregistrerPaiement(paiementData: {
-    montant: number;
-    produits: any[];
-    adresse: any;
+    prenom: string;
+    nom: string;
+    email: string;
+    telephone: string;
+    adresse: string;
+    prixTotal: number;
     stripePaymentId: string;
+    produits: Array<{ id: number; quantity: number; price: number }>;
+    utilisateurId: number;
   }) {
-    return axios.post(`${API_BACK}/paiement`, paiementData);
+    return axios.post(`${API_BACK}/auth/paiement`, paiementData);
   },
 };

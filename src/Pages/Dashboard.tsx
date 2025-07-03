@@ -17,7 +17,7 @@ const Dashboard: React.FC = () => {
 
   // ✅ Fonction pour rafraîchir les données
   const handleRefresh = async () => {
-    const isOwnerOrPrinter = user?.role === 'OWNER' || user?.role === 'IMPRIMEUR';
+    const isOwnerOrPrinter = user?.role === 'ADMIN' || user?.role === 'IMPRIMEUR';
     await refreshFiles(isOwnerOrPrinter);
   };
 
@@ -29,7 +29,6 @@ const Dashboard: React.FC = () => {
   }, [user, refreshTrigger]);
 
   const handleUploadSuccess = async (response?: any) => {
-    console.log('✅ Upload réussi dans Dashboard:', response);
     setRefreshTrigger(prev => prev + 1);
     
     // Émettre un événement pour rafraîchir d'autres composants
@@ -60,7 +59,7 @@ const Dashboard: React.FC = () => {
   };
 
   // ✅ Correction des rôles pour correspondre à votre système
-  const isOwnerOrPrinter = user?.role === 'OWNER' || user?.role === 'IMPRIMEUR';
+  const isOwnerOrPrinter = user?.role === 'ADMIN' || user?.role === 'IMPRIMEUR';
 
   // ✅ Calculer les statistiques depuis les fichiers
   const verifiedFilesCount = files.filter(file => file.estVerifie).length;

@@ -1,56 +1,98 @@
 // src/Routeur.tsx
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import RoleProtectedRoute from './routes/RoleProtectedRoute';
 import { Accueil } from './Pages/Accueil';
 import LoginPage from './Pages/LoginPage';
 import ProfilePage from './Pages/ProfilePage';
-import Navbar from './components/Navbar';
-import ProtectedRoute from './routes/ProtectedRoute';
 import ProductDetails from './Pages/ProductDetails';
 import CartPage from './Pages/shoppingCart';
 import Erreur from './Pages/Erreur';
 import Dashboard from './Pages/Dashboard';
 import CheckoutPage from './Pages/validationPanier';
+import DashboardAdmin from './Pages/DashboardAdmin';
+import DashboardImpression from './Pages/DashboardImpression';
 
-export const Routeur = () => {
-  return (
-    <Router>
-      <div className="app-container">
-        <Navbar />
-        <main className="main-content">
-          <Routes>
-            <Route path="/erreur" element={<Erreur />} />
-            <Route path="/" element={<Accueil />} />
-            
-            {/* Routes d'authentification */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
-            <Route path="/shoppingCart" element={<CartPage />} />
-            <Route path="/validation/Panier" element={<CheckoutPage />} />
-            {/* Routes protégées */}
-            <Route 
-              path="/dashboard" 
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/profil" 
-              element={
-                <ProtectedRoute>
-                  <ProfilePage />
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Route par défaut - redirection vers l'accueil */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </main>
-      </div>
-    </Router>
-  );
-};
+import Navbar from './components/Navbar';
+import CommandesClient from './Pages/CommandesClient';
+
+export const Routeur = () => (
+  <Router>
+    <Navbar />
+    <main className="main-content">
+      <Routes>
+        <Route path="/" element={<Accueil />} />
+        <Route path="/login" element={<LoginPage />} />
+
+        {/* accessibles sans auth */}
+        <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
+        <Route path="/shoppingCart" element={<CartPage />} />
+        <Route path="/erreur" element={<Erreur />} />
+
+        {/* Accessible selement si connecter */}
+        <Route
+          path="/validation/Panier"
+          element={
+            <RoleProtectedRoute roles={['CLIENT', 'ADMIN', 'IMPRIMEUR']}>
+              <CheckoutPage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Dashboard client → rôle USER */}
+        <Route
+          path="/dashboard/client"
+          element={
+            <RoleProtectedRoute roles={['CLIENT']}>
+              <Dashboard />
+            </RoleProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/commande"
+          element={
+            <RoleProtectedRoute roles={['CLIENT']}>
+              <CommandesClient />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Profil → rôle USER */}
+        <Route
+          path="/profil"
+          element={
+            <RoleProtectedRoute roles={['CLIENT']}>
+              <ProfilePage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Dashboard imprimeur → rôle IMPRIMEUR */}
+        <Route
+          path="/dashboard/impression"
+          element={
+            <RoleProtectedRoute roles={['IMPRIMEUR']}>
+              <DashboardImpression />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Dashboard admin → rôle ADMIN */}
+        <Route
+          path="/dashboard/admin"
+          element={
+            <RoleProtectedRoute roles={['ADMIN']}>
+              <DashboardAdmin />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* catch-all */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </main>
+  </Router>
+);
+
 
 export default Routeur;

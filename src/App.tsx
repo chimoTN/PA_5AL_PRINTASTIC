@@ -4,7 +4,9 @@ import { CartProvider } from './hooks/useSoppingCart';
 import Routeur from './Routeur';
 import './assets/styles/App.css'
 import './assets/styles/global.css';
+import './assets/styles/custom.scss';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { Toaster } from 'sonner';
 
 function App() {
   return (
@@ -12,6 +14,7 @@ function App() {
       <CartProvider>
         <Routeur />
       </CartProvider>
+      <Toaster richColors />
     </AuthProvider>
   );
 }

@@ -1,25 +1,33 @@
 // ✅ CheckoutPage.tsx – version propre avec appel au service central
 import { useCart } from '../hooks/useSoppingCart';
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Container, Row, Col, Form, Alert, Card } from 'react-bootstrap';
 import { useStripe, useElements, Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardNumberElement, CardExpiryElement, CardCvcElement } from "@stripe/react-stripe-js";
-import { paiementService } from '../services/paiementService';
-
+import { paiementService } from '../Services/paiementService';
+import { useAuth } from '../hooks/useAuth';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 const stripePromise = loadStripe('pk_test_51RbQFLIPwrA3cz1VnsMIcmzz0oxAzJ78wR0Qh18WLVdfXDTTNeYaFS87PFVSRyo8lTvyxgs0vOyqQuWzgdRdehhS00W1CoJzoq');
 
 const CheckoutForm = () => {
+
   const { cart, clearCart } = useCart();
-  const stripe = useStripe();
-  const elements = useElements();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   const [address, setAddress] = useState({ fullAddress: '', city: '', zip: '', country: 'France' });
   const [validationError, setValidationError] = useState('');
   const [isCardComplete, setIsCardComplete] = useState(false);
   const [isAddressValid, setIsAddressValid] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [cardNumberComplete, setCardNumberComplete] = useState(false);
+  const [cardExpiryComplete, setCardExpiryComplete] = useState(false);
+  const [cardCvcComplete, setCardCvcComplete] = useState(false);
+
+  //const [paymentSuccess, setPaymentSuccess] = useState(false);
 
   const validateAddress = async () => {
     try {
@@ -39,58 +47,82 @@ const CheckoutForm = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError('');
+    
+    console.log("ON EST DANS LE PAYLENT EUUUU")
+    // 1. validation adresse + carte…
 
-    if (!stripe || !elements) return;
-    if (!isAddressValid) return setValidationError("Adresse invalide.");
-    const card = elements.getElement(CardNumberElement);
-    if (!card) return setValidationError("Champ carte manquant.");
-
-    try {
-      const { clientSecret } = await paiementService.creerPaymentIntent(Math.round(total * 100));
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card,
-          billing_details: {
-            name: "Nom Client",
-            email: "client@example.com",
-            address: {
-              line1: address.fullAddress,
-              postal_code: address.zip,
-              city: address.city,
-              country: 'FR',
-            },
-          },
-        },
-      });
-
-      if (result.error) {
-        setValidationError(result.error.message || "Erreur de paiement.");
-      } else {
-        setPaymentSuccess(true);
-        await paiementService.enregistrerPaiement({
-          montant: total,
-          produits: cart,
-          adresse: address,
-          stripePaymentId: result.paymentIntent?.id || '',
-        });
-        clearCart();
-      }
-    } catch (err: any) {
-      setValidationError(err.message);
+    // 2. créer et confirmer le PaymentIntent
+    /*
+    const { clientSecret } = await paiementService.creerPaymentIntent(Math.round(total * 100));  // :contentReference[oaicite:1]{index=1}
+    const result = await stripe.confirmCardPayment(clientSecret, { /*…billing_details…*/ /*});
+ /*
+    if (result.error) {
+      setValidationError(result.error.message || "Erreur de paiement.");
+      return;
     }
+ */
+    // 3. en cas de succès, on prépare les données à envoyer au back
+    //if (result.paymentIntent?.status === 'succeeded') {
+   
+    try {
+      // Construire le payload attendu par le back
+      const response = await paiementService.enregistrerPaiement({
+        prenom: user?.prenom || 'chaima',                           // du contexte auth
+        nom:   user?.nom || 'Ouertani',
+        email: user?.email || 'mail@gmail.com' ,
+        telephone: user?.telephone || '01',            // à ajouter dans ton state adresse
+        adresse: `${address.fullAddress}, ${address.city} ${address.zip}`,
+        prixTotal: total,
+        stripePaymentId: '1',
+        produits: cart.map(item => ({
+          id:       item.id,
+          name:       item.name,
+          quantity: item.quantity,
+          price:    item.price
+        })), 
+        utilisateurId: user?.id || 5
+      });  
+      
+       if (response.status === 201) {
+        // Son
+        const audio = new Audio('/succes_payment.wav');
+        audio.play();
+
+        toast.success('Commande validée ! Redirection dans un instant...', {
+          duration: 3000,
+          position: 'top-center'
+        });
+
+        clearCart();
+        setTimeout(() => {
+          navigate('/dashboard/client');
+        }, 5000);
+      }
+
+      // 4. redirection vers la page de confirmation  
+      //clearCart();
+      //setPaymentSuccess(true);
+    //}
+
+    } catch (err) {
+     toast.error('Une erreur est survenue lors du paiement.', {
+        duration: 3000,
+        position: 'top-center' 
+      });
+    };
   };
 
-  if (paymentSuccess) {
-    return (
-      <Container className="mt-5 text-center">
-        <h2>Paiement réussi !</h2>
-        <p>Merci pour votre commande.</p>
-      </Container>
-    );
-  }
+  useEffect(() => {
+    if (cart.length === 0) {
+      navigate('/');
+    }
+  }, []);
+
+  useEffect(() => {
+    setIsCardComplete(cardNumberComplete && cardExpiryComplete && cardCvcComplete);
+  }, [cardNumberComplete, cardExpiryComplete, cardCvcComplete]);
 
   return (
     <Container style={{ paddingTop: '70px', paddingBottom: '50px' }}>
@@ -134,23 +166,37 @@ const CheckoutForm = () => {
               <Form.Group className="mb-3">
                 <Form.Label>Carte bancaire</Form.Label>
                 <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
-                  <CardNumberElement onChange={e => setIsCardComplete(e.complete)} />
+                  <CardNumberElement
+                    onChange={e => setCardNumberComplete(e.complete)}
+                  />
                 </div>
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>Expiration</Form.Label>
                 <div style={{ border: '1px solid #ccc', padding: '10px' }}>
-                  <CardExpiryElement />
+                  <CardExpiryElement
+                    onChange={e => setCardExpiryComplete(e.complete)}
+                  />
                 </div>
               </Form.Group>
               <Form.Group className="mb-3">
                 <Form.Label>CVC</Form.Label>
                 <div style={{ border: '1px solid #ccc', padding: '10px' }}>
-                  <CardCvcElement />
+                  <CardCvcElement
+                    onChange={e => setCardCvcComplete(e.complete)}
+                  />
                 </div>
               </Form.Group>
               {validationError && <Alert variant="danger">{validationError}</Alert>}
-              <Button type="submit" disabled={!isCardComplete || !isAddressValid}>Payer</Button>
+              
+              <Button 
+                type="submit"
+                disabled={!isCardComplete || !isAddressValid}
+                variant="primary"
+                className="w-100"
+              >
+                Payer
+              </Button>
             </Form>
           </Card>
         </Col>

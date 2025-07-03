@@ -1,5 +1,5 @@
 // src/hooks/useAuth.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authService } from '../Services/auth.service';
 import { AuthUser } from '../Services/base.service';
 
@@ -15,177 +15,65 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // ✅ useCallback pour éviter les re-renders inutiles
-  const refreshAuth = useCallback(async (): Promise<void> => {
+  const refreshAuth = async () => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('🔄 Vérification de l\'authentification...');
-      
-      const sessionValid = await authService.checkSession();
-      
-      if (sessionValid) {
-        const currentUser = authService.getCurrentUser();
-        if (currentUser) {
-          setUser(currentUser);
-          setIsAuthenticated(true);
-          console.log('✅ Authentification confirmée:', currentUser);
-        } else {
-          console.log('⚠️ Session valide mais pas de données utilisateur');
-          setUser(null);
-          setIsAuthenticated(false);
-        }
+      const ok = await authService.checkSession();
+      if (ok) {
+        const u = authService.getCurrentUser();
+        setUser(u);
+        setIsAuthenticated(true);
       } else {
         setUser(null);
         setIsAuthenticated(false);
-        console.log('❌ Session invalide');
       }
-    } catch (error: any) {
-      console.warn('⚠️ Erreur lors de la vérification auth:', error.message);
+    } catch {
       setUser(null);
       setIsAuthenticated(false);
-      setError(error.message);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const login = async (email: string, motDePasse: string) => {
+    setIsLoading(true);
+    try {
+      await authService.login(email, motDePasse);
+      const u = authService.getCurrentUser();
+      setUser(u);
+      setIsAuthenticated(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setIsLoading(true);
+    await authService.logout();
+    setUser(null);
+    setIsAuthenticated(false);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    refreshAuth();
   }, []);
 
-  const login = async (email: string, motDePasse: string): Promise<void> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      console.log('🔑 Tentative de connexion...');
-      
-      const response = await authService.login(email, motDePasse);
-      
-      // ✅ Gestion flexible des noms de propriétés
-      const userData = response.utilisateur || response.user;
-      
-      if (response.success && userData) {
-        setUser(userData);
-        setIsAuthenticated(true);
-        console.log('✅ Connexion réussie:', userData);
-      } else {
-        throw new Error(response.message || 'Échec de la connexion');
-      }
-    } catch (error: any) {
-      console.error('❌ Erreur de connexion:', error);
-      setError(error.message || 'Erreur de connexion');
-      setUser(null);
-      setIsAuthenticated(false);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const logout = async (): Promise<void> => {
-    try {
-      setIsLoading(true);
-      console.log('🚪 Déconnexion...');
-      
-      await authService.logout();
-      
-      setUser(null);
-      setIsAuthenticated(false);
-      setError(null);
-      
-      console.log('✅ Déconnexion réussie');
-    } catch (error: any) {
-      console.error('❌ Erreur déconnexion:', error);
-      // ✅ Forcer la déconnexion locale même en cas d'erreur
-      setUser(null);
-      setIsAuthenticated(false);
-      setError(null);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // ✅ useEffect optimisé
-  useEffect(() => {
-    let isMounted = true; // ✅ Éviter les updates sur composant démonté
-    
-    const initializeAuth = async () => {
-      try {
-        const localUser = authService.getCurrentUser();
-        
-        if (localUser && isMounted) {
-          console.log('👤 Utilisateur trouvé dans localStorage:', localUser);
-          setUser(localUser);
-          setIsAuthenticated(true);
-          
-          // ✅ Vérifier en arrière-plan si la session est toujours valide
-          try {
-            const sessionValid = await authService.checkSession();
-            if (!sessionValid && isMounted) {
-              console.log('⚠️ Session expirée, nettoyage...');
-              setUser(null);
-              setIsAuthenticated(false);
-            }
-          } catch (sessionError) {
-            console.warn('⚠️ Erreur vérification session arrière-plan:', sessionError);
-            // Ne pas déconnecter sur les erreurs réseau temporaires
-          }
-        } else {
-          // ✅ Pas d'utilisateur local, vérifier le serveur
-          await refreshAuth();
-        }
-      } catch (error) {
-        console.warn('⚠️ Erreur initialisation auth:', error);
-        if (isMounted) {
-          setUser(null);
-          setIsAuthenticated(false);
-          setIsLoading(false);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-    
-    // ✅ Cleanup function
-    return () => {
-      isMounted = false;
-    };
-  }, [refreshAuth]);
-
-  const contextValue: AuthContextType = {
-    isAuthenticated,
-    user,
-    isLoading,
-    error,
-    login,
-    logout,
-    refreshAuth
-  };
-
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, error, login, logout, refreshAuth }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export const useAuth = () => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be inside AuthProvider');
+  return ctx;
 };

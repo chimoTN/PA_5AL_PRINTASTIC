@@ -24,15 +24,11 @@ const LoginPage = () => {
       setLoading(true);
       setError('');
       
-      console.log('🔑 Tentative de connexion avec:', { email: email.trim() });
-      
       await login(email.trim(), motDePasse);
-      
-      console.log('✅ Connexion réussie !');
       
       // ✅ Petite temporisation pour laisser le contexte se mettre à jour
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/dashboard/client');
       }, 100);
       
     } catch (error: any) {
@@ -108,19 +104,10 @@ const LoginPage = () => {
               <button 
                 type="submit" 
                 className="login-button"
-                disabled={loading || !email.trim() || !motDePasse.trim()}
+                style={{ background: "blueviolet"}}
               >
-                {loading ? (
-                  <>
-                    <i className="fa fa-spinner fa-spin"></i>
-                    Connexion en cours...
-                  </>
-                ) : (
-                  <>
                     <i className="fa fa-sign-in"></i>
                     Se connecter
-                  </>
-                )}
               </button>
             </form>
             
