@@ -33,6 +33,7 @@ export const commandeService = {
     }
   },
 
+  
   async changerStatutDetailCommande(idDetailCommande: number, statut: string) {
     try {
       const res = await axios.put(`${API_URL}/detail/${idDetailCommande}/statut`, { statut });

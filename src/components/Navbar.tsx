@@ -81,17 +81,22 @@ const Navbar: React.FC = () => {
             <span>Chargement...</span>
           </div>
         ) : isAuthenticated ? (
-          <div className="user-menu">
-            {user && (
-              <span className="user-welcome">
-                Bonjour, {user.prenom}
-              </span>
-            )}
-            <button onClick={handleLogout} className="logout-button">
-              <i className="fas fa-sign-out-alt"></i>
-              Déconnexion
-            </button>
-          </div>
+          <>
+            <div className="user-menu">
+              {user && (
+                <span className="user-welcome">
+                  Bonjour, {user.prenom}
+                </span>
+              )}
+            </div>
+
+            <div className="user-menu">
+              <button onClick={handleLogout} className="logout-button">
+                <i className="fas fa-sign-out-alt"></i>
+                Déconnexion
+              </button>
+            </div>
+          </>
         ) : (
           <Link to="/login" className="login-button">
             <i className="fas fa-sign-in-alt"></i>

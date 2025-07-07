@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Badge, Button, Card, Container, ListGroup } from 'react-bootstrap';
+import { Badge, Button, Card, Container, ListGroup, Spinner } from 'react-bootstrap';
 import { commandeService } from '../services/commande.service';
 import { useAuth } from '../hooks/useAuth';
 
@@ -51,8 +51,30 @@ const CommandesClient = () => {
     alert(`Produit #${index + 1} signalé ! (fonction à implémenter)`);
   };
 
-  if (loading) return <p>Chargement des commandes...</p>;
-  if (!commandes.length) return <p>Aucune commande trouvée.</p>;
+  if (loading){
+    return (
+      <Container className="text-center mt-5">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+      </Container>
+    );
+  } 
+
+  if (!commandes.length) {
+  return (
+    <Container className="text-center mt-5">
+      <h1 className="fw-bold display-3 mb-4">Vous n'avez pas encore passé de commande !</h1>
+      <img
+        src="https://cdn-icons-png.flaticon.com/512/3468/3468823.png"
+        alt="Colie"
+        style={{ maxWidth: '400px', width: '100%', height: 'auto' }}
+      />
+
+    </Container>
+  );
+}
+
 
   return (
     <Container className="mt-4">
