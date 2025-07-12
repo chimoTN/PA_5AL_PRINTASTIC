@@ -1,15 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Table, Image, Badge, Button, Form } from 'react-bootstrap';
-import { impressionService } from '../services/impression.service';
-import { commandeService } from '../services/commande.service';
-import { useAuth } from '../hooks/useAuth';
+import { Container, Row, Col, Card, Table, Image, Badge, Button, Form, Modal } from 'react-bootstrap';
+import { impressionService } from '../../services/impression.service';
+import { commandeService } from '../../services/commande.service';
+import { useAuth } from '../../hooks/useAuth';
+import { signalementService } from '../../services/signalement.service';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+import { TypeSignalement } from '../../types/Signalement';
 
 const CommandEnCours = () => {
   const [acceptedOrders, setAcceptedOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [trackingCode, setTrackingCode] = useState('');
   const [showForm, setShowForm] = useState(false);
+
+  const [showModal, setShowModal] = useState(false);
+  const [signalType, setSignalType] = useState<TypeSignalement>(TypeSignalement.FICHIER_ENDOMMAGE);
+  const [submitting, setSubmitting] = useState(false);
+
+  const open = () => {
+    console.log("🚨 OPEN MODAL TRIGGERED");
+    setShowModal(true);
+  };
+
+  const close = () => setShowModal(false);
+
+
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (user?.id) {
@@ -46,9 +64,11 @@ const CommandEnCours = () => {
     setShowForm(false);
   };
 
+  /* on abandonne la commande */
+
   const abandonnerCommande = async () => {
     try {
-      await commandeService.changerStatutDetailCommande(selectedOrder.id, 'annulé');
+      await commandeService.changerStatutDetailCommande(selectedOrder.id, 'en attente');
       await fetchAccepted();
       setSelectedOrder(null);
     } catch (err) {
@@ -56,6 +76,7 @@ const CommandEnCours = () => {
     }
   };
 
+  /* on envoie la commande */
   const envoyerProduit = async () => {
     try {
       await commandeService.changerStatutDetailCommande(selectedOrder.id, 'expédié', trackingCode);
@@ -66,15 +87,45 @@ const CommandEnCours = () => {
     }
   };
 
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await signalementService.signalerDetailCommande(
+        selectedOrder.id,
+        signalType,
+        user.id
+      );
+      toast.success('Signalement effectué avec succès !', {
+        description: 'Nous avons bien reçu votre signalement.',
+        duration: 5000
+      });
+
+      fetchAccepted();      // recharger la liste
+      setSelectedOrder(null);
+      close();
+    } catch {
+      toast.error('Erreur lors du signalement', {
+        description: 'Une erreur est survenue lors du signalement. Veuillez réessayer plus tard ou nous contacter.',
+        duration: 5000
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+
   const isExpedie = selectedOrder?.statut === 'expédié' || selectedOrder?.statut === 'livré';
 
   return (
     <Container fluid className="py-4">
       <Row className="mb-4">
-        <Col>
-          <h1>Tableau de bord Impression</h1>
-          <p>Bienvenue dans votre espace d’impression !</p>
-        </Col>
+        <div className="profile-header">
+          <div className="profile-title">
+            <h1>Tableau de bord Impression</h1>
+            <p className="profile-subtitle">Bienvenue dans votre espace d’impression !</p>
+          </div>
+        </div>
       </Row>
 
       <Row>
@@ -188,9 +239,75 @@ const CommandEnCours = () => {
                 <Button variant="danger" onClick={abandonnerCommande} disabled={isExpedie}>
                   Abandonner la commande
                 </Button>
-                <Button variant="warning" className="ms-2">
-                  Signaler
+                
+                <Button
+                  variant="warning"
+                  className="ms-2"
+                  onClick={open}
+                  disabled={isExpedie}
+                >
+                  Signalé
                 </Button>
+
+                <Modal show={showModal} onHide={close} centered>
+                    <Modal.Header closeButton>
+                      <Modal.Title>Signaler un produit</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                      <Form>
+                        <Form.Group>
+                          <Form.Label>Quel est le souci ?</Form.Label>
+                          <Form.Check
+                            type="radio"
+                            name="signalementType"
+                            id="sig-file"
+                            label="Fichier endommagé"
+                            value={TypeSignalement.FICHIER_ENDOMMAGE}
+                            checked={signalType === TypeSignalement.FICHIER_ENDOMMAGE}
+                            onChange={() =>
+                              setSignalType(TypeSignalement.FICHIER_ENDOMMAGE)
+                            }
+                          />
+                          <Form.Check
+                            type="radio"
+                            name="signalementType"
+                            id="sig-illegale"
+                            label="Contenu illégal"
+                            value={TypeSignalement.ILLEGALE}
+                            checked={signalType === TypeSignalement.ILLEGALE}
+                            onChange={() =>
+                              setSignalType(TypeSignalement.ILLEGALE)
+                            }
+                          />
+                          <Form.Check
+                            type="radio"
+                            name="signalementType"
+                            id="sig-problematique"
+                            label="Problématique"
+                            value={TypeSignalement.PROBLEMATIQUE}
+                            checked={signalType === TypeSignalement.PROBLEMATIQUE}
+                            onChange={() =>
+                              setSignalType(TypeSignalement.PROBLEMATIQUE)
+                            }
+                          />
+                        </Form.Group>
+                      </Form>
+                    </Modal.Body>
+                    <Modal.Footer>
+                      <Button variant="secondary" onClick={close} disabled={submitting}>
+                        Annuler
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={handleSubmit}
+                        disabled={submitting}
+                      >
+                        {submitting ? 'Envoi...' : 'Envoyer la requête'}
+                      </Button>
+                    </Modal.Footer>
+                </Modal>
+
+                
               </Card.Body>
             </Card>
           </Col>

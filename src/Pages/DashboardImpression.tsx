@@ -1,7 +1,8 @@
 import React, {  useState } from 'react';
-import CommandEnCours from '../components/CommandEnCours';
-import CommandeEnAttente from '../components/CommandeEnAttente';
-import CommandRealiser from '../components/CommandRealiser';
+import CommandEnCours from './ImprimeurPage/CommandEnCours';
+import CommandeEnAttente from './ImprimeurPage/CommandeEnAttente';
+import CommandRealiser from './ImprimeurPage/CommandRealiser';
+import ProfilImprimeur from './ImprimeurPage/ParamettreImprimeur';
 
 const DashboardImpression = () => {
   const [activeTab, setActiveTab] = useState('mesCommandesEnCours');
@@ -38,6 +39,14 @@ const DashboardImpression = () => {
             <i className="fas fa-history"></i>
               Mes impressions
           </button>
+
+          {/*Acces au paramettre de l'imprimeur */}
+          <button 
+            className={`tab-button ${activeTab === 'parametre' ? 'active' : ''}`}
+            onClick={() => setActiveTab('parametre')}
+          >
+            <i className="fas fa-cog"></i>
+          </button>
         </div>
 
         {activeTab === 'lesDemande' && (
@@ -50,6 +59,10 @@ const DashboardImpression = () => {
 
         {activeTab === 'monHistorique' && (
           <CommandRealiser/>
+        )}
+
+        {activeTab === 'parametre' && (
+          <ProfilImprimeur/>
         )}
         
       </div>

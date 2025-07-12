@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Card, Badge, Container, Row, Col, Image } from 'react-bootstrap';
-import { impressionService } from '../services/impression.service';
-import { useAuth } from '../hooks/useAuth';
+import { impressionService } from '../../services/impression.service';
+import { useAuth } from '../../hooks/useAuth';
 
 const CommandeEnAttente = () => {
   const [pendingOrders, setPendingOrders] = useState([]);

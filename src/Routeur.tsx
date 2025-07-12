@@ -14,6 +14,7 @@ import DashboardImpression from './Pages/DashboardImpression';
 
 import Navbar from './components/Navbar';
 import CommandesClient from './Pages/CommandesClient';
+import InscriptionPage from './Pages/InscriptionPage';
 
 export const Routeur = () => (
   <Router>
@@ -27,7 +28,7 @@ export const Routeur = () => (
         <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
         <Route path="/shoppingCart" element={<CartPage />} />
         <Route path="/erreur" element={<Erreur />} />
-
+        <Route path="/devenir-imprimeur" element={<InscriptionPage />} />
         {/* Accessible selement si connecter */}
         <Route
           path="/validation/Panier"
@@ -81,7 +82,7 @@ export const Routeur = () => (
         <Route
           path="/dashboard/admin"
           element={
-            <RoleProtectedRoute roles={['ADMIN']}>
+            <RoleProtectedRoute roles={['PROPRIETAIRE']}>
               <DashboardAdmin />
             </RoleProtectedRoute>
           }
