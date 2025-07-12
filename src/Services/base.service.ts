@@ -372,7 +372,7 @@ class BaseService {
   // ✅ AJOUT : Méthode pour tester la session
   async checkSession(): Promise<boolean> {
     try {
-      await this.get('/auth/profile');
+      await this.get('/auth/profil');
       return true;
     } catch (error) {
       console.warn('⚠️ Session invalide:', error);

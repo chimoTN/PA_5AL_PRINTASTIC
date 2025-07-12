@@ -10,72 +10,106 @@ interface BackendFilesResponse {
   message?: string;
 }
 
-
-// ✅ Interface pour les données d'upload
+// ✅ Interface pour les données d'upload - CORRIGÉE
 export interface FileClientUploadData {
-  file: File;
+  fichier: File;           // ✅ CORRECTION : "fichier" au lieu de "file"
   scaling: number;
   description: string;
-  idMatériau: number;
+  materiauId: number;      // ✅ CORRECTION : "materiauId" au lieu de "idMatériau"
+  nomPersonnalise?: string; // ✅ CORRECTION : "nomPersonnalise" au lieu de "nom"
+  pays: string;
 }
 
-// ✅ Interface pour la réponse d'upload
+// ✅ Interface pour la réponse d'upload - CORRIGÉE
 export interface FileClientUploadResponse {
   success: boolean;
   message: string;
   data: {
-    modele: {
-      id: number;
-      fichier3dId: number;
-      materiauId: number;
-      utilisateurId: number;
-      taille: string;
-      prix: number | null;
-      estVerifie: boolean;
-      commentaireVerification: string | null;
-      dateVerification: string | null;
-      dateCreation: string;
-      fichier3D: {
-        id: number;
-        cheminFichier: string;
-        format: string;
-        tailleFichier: number;
-        type: string | null;
-        dateCreation: string;
-        derniereVerification: string;
-      };
-      materiau: {
-        id: number;
-        nom: string;
-        description: string;
-        coutParGramme: string;
-        estDisponible: boolean;
-        dateCreation: string | null;
-      };
-    };
-    prixEstime: number | null;
+    id: number;
+    fichier3dId: number;
+    materiauId: number;
+    utilisateurId: number;
+    nom: string;
+    description: string;
+    volume: string;
+    poidsMatiere: string;
+    longueur: string;
+    largeur: string;
+    hauteur: string;
+    estImprimable: boolean;
+    surfaceExterne: string;
+    tauxRemplissage: number;
+    necessiteSupports: boolean;
+    coutMateriau: string;
+    coutExpedition: string;
+    coutMain: string | null;
+    taille: string;
+    prix: string;
     statut: string;
+    commentaire: string | null;
+    dateValidation: string | null;
+    dateCreation: string;
+    dateModification: string;
+    estVerifie: boolean;
+    commentaireVerification: string | null;
+    dateVerification: string | null;
+    fichier3D: {
+      nomFichier: string;
+      format: string;
+      tailleFichier: string;
+      dateCreation: string;
+    };
+    materiau: {
+      nom: string;
+      type: string;
+      couleur: string;
+      prixParGramme: string;
+    };
   };
 }
 
-// ✅ Interface pour les données de fichier client
+// ✅ Interface pour les données de fichier client - CORRIGÉE
 export interface FileClientData {
   id: number;
-  nomFichier: string;
-  cheminFichier: string;
-  taille: number;
-  dateUpload: string;
-  idUtilisateur: number;
-  scaling: number;
+  fichier3dId: number;
+  materiauId: number;
+  utilisateurId: number;
+  nom: string;
   description: string;
-  idMatériau: number;
-  statut?: string;
-  estVérifié?: boolean;
-  commentaireVérification?: string;
-  dateVérification?: string;
-  // Propriétés calculées
-  formatFichier?: string;
-  tailleFormatée?: string;
+  volume: string;
+  poidsMatiere: string;
+  longueur: string;
+  largeur: string;
+  hauteur: string;
+  estImprimable: boolean;
+  surfaceExterne: string;
+  tauxRemplissage: number;
+  necessiteSupports: boolean;
+  coutMateriau: string;
+  coutExpedition: string;
+  coutMain: string | null;
+  taille: string;
+  prix: string;
+  statut: string;
+  commentaire: string | null;
+  dateValidation: string | null;
+  dateCreation: string;
+  dateModification: string;
+  estVerifie: boolean;
+  commentaireVerification: string | null;
+  dateVerification: string | null;
+  fichier3D?: {
+    nomFichier: string;
+    format: string;
+    tailleFichier: string;
+    dateCreation: string;
+  };
+  materiau?: {
+    nom: string;
+    type: string;
+    couleur: string;
+    prixParGramme: string;
+  };
 }
 
 // ✅ Interface pour la réponse des fichiers
@@ -96,44 +130,51 @@ export interface FileClientActionResponse {
 // ✅ Interface pour la mise à jour du statut
 export interface UpdateFileClientVerificationData {
   estVerifie: boolean;
-  commentaireVérification?: string;
+  commentaireVerification?: string;
 }
 
 export const filesClientService = {
-  // ✅ CORRECTION : Upload avec méthode request corrigée
+  // ✅ CORRECTION : Upload avec les bons noms de champs
   async uploadFileClient(
     uploadData: FileClientUploadData,
     onProgress?: (progress: number) => void
   ): Promise<FileClientUploadResponse> {
     try {
       console.log('📤 Début upload fichier client vers /api/modele3DClient/upload:', {
-        fileName: uploadData.file.name,
-        fileSize: uploadData.file.size,
+        fileName: uploadData.fichier.name,
+        fileSize: uploadData.fichier.size,
         scaling: uploadData.scaling,
         description: uploadData.description,
-        materialId: uploadData.idMatériau
+        materialId: uploadData.materiauId,
+        customName: uploadData.nomPersonnalise,
+        country: uploadData.pays
       });
 
-      // ✅ Créer le FormData avec les bons noms de champs
+      // ✅ Créer le FormData avec les BONS noms de champs
       const formData = new FormData();
-      formData.append('file', uploadData.file);
-      formData.append('taille', uploadData.scaling.toString());
+      formData.append('file', uploadData.fichier);
+      formData.append('scaling', uploadData.scaling.toString()); // ✅ CORRECTION
       formData.append('description', uploadData.description);
-      formData.append('materiauId', uploadData.idMatériau.toString());
+      formData.append('materiauId', uploadData.materiauId.toString()); // ✅ CORRECTION
+      formData.append('pays', uploadData.pays);
+      
+      // ✅ AJOUT : Nom personnalisé (optionnel)
+      if (uploadData.nomPersonnalise && uploadData.nomPersonnalise.trim()) {
+        formData.append('nomPersonnalise', uploadData.nomPersonnalise.trim()); // ✅ CORRECTION
+      }
 
-      // ✅ Debug du FormData
+      // ✅ Debug du FormData complet
       console.log('📋 Contenu du FormData:');
       for (const [key, value] of formData.entries()) {
         console.log(`  ${key}:`, value);
       }
 
-      // ✅ CORRECTION : Utiliser la route exacte
+      // ✅ Utiliser la route correcte
       const response = await baseService.request<FileClientUploadResponse>(
-        '/modele3DClient/upload', // L'URL finale sera: http://localhost:3000/api/modele3DClient/upload
+        '/modele3DClient/upload', // ✅ CORRECTION : Route cohérente
         {
           method: 'POST',
           body: formData,
-          // ✅ Headers spécifiques pour l'upload de fichier
           headers: {
             // Ne pas définir Content-Type pour FormData (boundary automatique)
           }
@@ -142,14 +183,18 @@ export const filesClientService = {
       );
 
       console.log('✅ Upload réussi - Réponse complète:', response);
-      console.log('📊 Données du modèle créé:', {
-        modeleId: response.data.modele.id,
-        fichier3dId: response.data.modele.fichier3dId,
-        materiau: response.data.modele.materiau.nom,
-        taille: response.data.modele.taille,
-        statut: response.data.statut,
-        prixEstime: response.data.prixEstime
-      });
+      
+      // ✅ CORRECTION : Accès sécurisé aux données
+      if (response.success && response.data) {
+        console.log('📊 Données du modèle créé:', {
+          modeleId: response.data.id,
+          nom: response.data.nom,
+          materiau: response.data.materiau?.nom,
+          taille: response.data.taille,
+          statut: response.data.statut,
+          prix: response.data.prix
+        });
+      }
 
       return response;
       
@@ -171,14 +216,16 @@ export const filesClientService = {
     }
   },
 
-  // ✅ Récupérer tous les fichiers clients de l'utilisateur
-  // ✅ CORRECTION : Récupérer tous les fichiers clients de l'utilisateur
-  async getFilesClient(): Promise<FileClientListResponse> {
+  // ✅ Récupérer tous les fichiers clients - CORRIGÉ
+  async getFilesClient(showAll: boolean = false): Promise<FileClientListResponse> {
     try {
       console.log('🔄 Récupération des fichiers client...');
       
+      // ✅ Route avec paramètre showAll
+      const endpoint = showAll ? '/modele3DClient?showAll=true' : '/modele3DClient/my-models';
+      
       // ✅ Récupérer la réponse backend brute
-      const backendResponse = await baseService.get<BackendFilesResponse>('/modele3DClient/my-models');
+      const backendResponse = await baseService.get<BackendFilesResponse>(endpoint);
       
       console.log('📡 Réponse backend brute:', backendResponse);
       console.log('🔍 backendResponse.success:', backendResponse.success);
@@ -213,19 +260,18 @@ export const filesClientService = {
     }
   },
 
-
-  // ✅ Récupérer un fichier client par ID
+  // ✅ Récupérer un fichier client par ID - CORRIGÉ
   async getFileClientById(id: number): Promise<FileClientData | null> {
     try {
       console.log('🔄 Récupération du fichier client ID:', id);
       
       const response = await baseService.get<{
         success: boolean;
-        file: FileClientData;
+        data: FileClientData; // ✅ CORRECTION : "data" au lieu de "file"
       }>(`/modele3DClient/${id}`);
 
       console.log('✅ Fichier client récupéré:', response);
-      return response.file;
+      return response.data; // ✅ CORRECTION
       
     } catch (error: any) {
       console.error('❌ Erreur getFileClientById:', error);
@@ -283,8 +329,6 @@ export const filesClientService = {
     
     return iconMap[extension || ''] || 'fas fa-file';
   },
-
-
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';

@@ -19,7 +19,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   const refreshAuth = async () => {
     setIsLoading(true);
@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
         const u = authService.getCurrentUser();
         setUser(u);
         setIsAuthenticated(true);
-      } else {
+      }  else {
         setUser(null);
         setIsAuthenticated(false);
       }

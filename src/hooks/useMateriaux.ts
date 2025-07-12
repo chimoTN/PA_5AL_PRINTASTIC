@@ -64,18 +64,19 @@ export const useMaterials = () => {
     return materials.filter(material => material.estDisponible);
   }, [materials]);
 
-  // ✅ Formater le prix d'un matériau
-  const formatPrice = useCallback((coutParGramme: string | number): string => {
-    const price = typeof coutParGramme === 'string' 
-      ? parseFloat(coutParGramme) 
-      : coutParGramme;
-    
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 4
-    }).format(price);
+  // ✅ Fonction pour obtenir le prix (utilise le service)
+  const getPrixParGramme = useCallback((material: Material): number => {
+    return materialsService.getPrixParGramme(material);
+  }, []);
+
+  // ✅ Obtenir la densité (utilise le service)
+  const getDensite = useCallback((material: Material): number => {
+    return materialsService.getDensite(material);
+  }, []);
+
+  // ✅ Formater le prix d'un matériau (utilise le service)
+  const formatPrice = useCallback((prix: number | string): string => {
+    return materialsService.formatPrice(prix);
   }, []);
 
   // ✅ Calculer le coût pour un poids donné
@@ -83,11 +84,7 @@ export const useMaterials = () => {
     const material = getMaterialById(materialId);
     if (!material) return 0;
     
-    const pricePerGram = typeof material.coutParGramme === 'string' 
-      ? parseFloat(material.coutParGramme) 
-      : material.coutParGramme;
-    
-    return pricePerGram * weightInGrams;
+    return materialsService.calculateCostForWeight(material, weightInGrams);
   }, [getMaterialById]);
 
   // ✅ Formater le coût calculé
@@ -102,72 +99,152 @@ export const useMaterials = () => {
     return material?.estDisponible || false;
   }, [getMaterialById]);
 
-  // ✅ Obtenir les statistiques des matériaux
+  // ✅ Obtenir les statistiques des matériaux (utilise le service)
   const getMaterialsStats = useCallback(() => {
-    const total = materials.length;
-    const available = materials.filter(m => m.estDisponible).length;
-    const unavailable = total - available;
-    
-    const priceRange = materials.reduce((acc, material) => {
-      const price = typeof material.coutParGramme === 'string' 
-        ? parseFloat(material.coutParGramme) 
-        : material.coutParGramme;
-      
-      if (acc.min === null || price < acc.min) acc.min = price;
-      if (acc.max === null || price > acc.max) acc.max = price;
-      
-      return acc;
-    }, { min: null as number | null, max: null as number | null });
+    return materialsService.getMaterialsStats(materials);
+  }, [materials]);
 
-    return {
-      total,
-      available,
-      unavailable,
-      priceRange: {
-        min: priceRange.min ? formatPrice(priceRange.min) : 'N/A',
-        max: priceRange.max ? formatPrice(priceRange.max) : 'N/A'
-      }
-    };
-  }, [materials, formatPrice]);
-
-  // ✅ Rechercher des matériaux
+  // ✅ Rechercher des matériaux (utilise le service)
   const searchMaterials = useCallback((query: string): Material[] => {
-    if (!query.trim()) return materials;
+    return materialsService.searchInMaterials(materials, query);
+  }, [materials]);
+
+  // ✅ Trier les matériaux (utilise le service)
+  const sortMaterials = useCallback((sortBy: 'nom' | 'prix' | 'type' | 'disponibilite' = 'nom'): Material[] => {
+    return materialsService.sortMaterials(materials, sortBy);
+  }, [materials]);
+
+  // ✅ Obtenir les matériaux par type
+  const getMaterialsByType = useCallback((type: string): Material[] => {
+    return materials.filter(material => material.type === type);
+  }, [materials]);
+
+  // ✅ Obtenir les types de matériaux uniques (utilise le service)
+  const getUniqueTypes = useCallback((): string[] => {
+    return materialsService.getUniqueTypes(materials);
+  }, [materials]);
+
+  // ✅ Obtenir les couleurs uniques (utilise le service)
+  const getUniqueColors = useCallback((): string[] => {
+    return materialsService.getUniqueColors(materials);
+  }, [materials]);
+
+  // ✅ Grouper les matériaux par type (utilise le service)
+  const groupMaterialsByType = useCallback((): Record<string, Material[]> => {
+    return materialsService.groupMaterialsByType(materials);
+  }, [materials]);
+
+  // ✅ Grouper les matériaux par couleur (utilise le service)
+  const groupMaterialsByColor = useCallback((): Record<string, Material[]> => {
+    return materialsService.groupMaterialsByColor(materials);
+  }, [materials]);
+
+  // ✅ Calculer le poids de matériau nécessaire (utilise le service)
+  const calculateMaterialWeight = useCallback((
+    materialId: number,
+    volumeCm3: number,
+    fillRate: number = 0.2,
+    withSupports: boolean = false
+  ): number => {
+    const material = getMaterialById(materialId);
+    if (!material) return 0;
+
+    return materialsService.calculateMaterialWeight(material, volumeCm3, fillRate, withSupports);
+  }, [getMaterialById]);
+
+  // ✅ Calculer le prix total pour une quantité (utilise le service)
+  const calculateTotalPrice = useCallback((materialId: number, quantityInGrams: number): number => {
+    const material = getMaterialById(materialId);
+    if (!material) return 0;
     
-    const searchTerm = query.toLowerCase().trim();
+    return materialsService.calculateTotalPrice(material, quantityInGrams);
+  }, [getMaterialById]);
+
+  // ✅ Formater le prix total (utilise le service)
+  const formatTotalPrice = useCallback((materialId: number, quantityInGrams: number): string => {
+    const material = getMaterialById(materialId);
+    if (!material) return materialsService.formatPrice(0);
     
+    return materialsService.formatTotalPrice(material, quantityInGrams);
+  }, [getMaterialById]);
+
+  // ✅ Obtenir les matériaux par difficulté
+  const getMaterialsByDifficulty = useCallback((difficulty: 'facile' | 'moyen' | 'difficile'): Material[] => {
+    return materials.filter(material => material.difficulteImpression === difficulty);
+  }, [materials]);
+
+  // ✅ Obtenir les matériaux qui nécessitent des supports
+  const getMaterialsWithSupports = useCallback((): Material[] => {
+    return materials.filter(material => material.necessiteSupports);
+  }, [materials]);
+
+  // ✅ Obtenir les matériaux sans supports
+  const getMaterialsWithoutSupports = useCallback((): Material[] => {
+    return materials.filter(material => !material.necessiteSupports);
+  }, [materials]);
+
+  // ✅ Obtenir les matériaux par plage de prix
+  const getMaterialsByPriceRange = useCallback((minPrice: number, maxPrice: number): Material[] => {
+    return materials.filter(material => {
+      const price = getPrixParGramme(material);
+      return price >= minPrice && price <= maxPrice;
+    });
+  }, [materials, getPrixParGramme]);
+
+  // ✅ Obtenir les matériaux par température d'impression
+  const getMaterialsByTemperature = useCallback((minTemp: number, maxTemp: number): Material[] => {
     return materials.filter(material => 
-      material.nom.toLowerCase().includes(searchTerm) ||
-      material.description?.toLowerCase().includes(searchTerm)
+      material.temperatureImpression >= minTemp && material.temperatureImpression <= maxTemp
     );
   }, [materials]);
 
-  // ✅ Trier les matériaux
-  const sortMaterials = useCallback((sortBy: 'nom' | 'prix' | 'disponibilite', order: 'asc' | 'desc' = 'asc'): Material[] => {
-    const sorted = [...materials].sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'nom':
-          comparison = a.nom.localeCompare(b.nom, 'fr-FR');
-          break;
-        case 'prix':
-          const priceA = typeof a.coutParGramme === 'string' ? parseFloat(a.coutParGramme) : a.coutParGramme;
-          const priceB = typeof b.coutParGramme === 'string' ? parseFloat(b.coutParGramme) : b.coutParGramme;
-          comparison = priceA - priceB;
-          break;
-        case 'disponibilite':
-          comparison = (b.estDisponible ? 1 : 0) - (a.estDisponible ? 1 : 0);
-          break;
-        default:
-          return 0;
-      }
-      
-      return order === 'desc' ? -comparison : comparison;
-    });
+  // ✅ Obtenir le matériau le moins cher
+  const getCheapestMaterial = useCallback((): Material | null => {
+    if (materials.length === 0) return null;
     
-    return sorted;
-  }, [materials]);
+    return materials.reduce((cheapest, current) => {
+      const cheapestPrice = getPrixParGramme(cheapest);
+      const currentPrice = getPrixParGramme(current);
+      return currentPrice < cheapestPrice ? current : cheapest;
+    });
+  }, [materials, getPrixParGramme]);
+
+  // ✅ Obtenir le matériau le plus cher
+  const getMostExpensiveMaterial = useCallback((): Material | null => {
+    if (materials.length === 0) return null;
+    
+    return materials.reduce((expensive, current) => {
+      const expensivePrice = getPrixParGramme(expensive);
+      const currentPrice = getPrixParGramme(current);
+      return currentPrice > expensivePrice ? current : expensive;
+    });
+  }, [materials, getPrixParGramme]);
+
+  // ✅ Vérifier si un matériau nécessite un plateau chauffant
+  const requiresHeatedBed = useCallback((materialId: number): boolean => {
+    const material = getMaterialById(materialId);
+    return material?.temperatureLit !== null && (material?.temperatureLit || 0) > 0;
+  }, [getMaterialById]);
+
+  // ✅ Obtenir les recommandations pour un matériau
+  const getMaterialRecommendations = useCallback((materialId: number) => {
+    const material = getMaterialById(materialId);
+    if (!material) return null;
+
+    return {
+      material,
+      temperatureImpression: material.temperatureImpression,
+      temperatureLit: material.temperatureLit,
+      tauxRemplissage: material.tauxRemplissageRecommande,
+      necessiteSupports: material.necessiteSupports,
+      difficulte: material.difficulteImpression,
+      notes: material.notes,
+      densite: getDensite(material),
+      prixParGramme: getPrixParGramme(material),
+      coefficientSupports: materialsService.getCoefficientSupports(material),
+      perteMateriau: materialsService.getPerteMateriauNumber(material)
+    };
+  }, [getMaterialById, getDensite, getPrixParGramme]);
 
   // ✅ Charger les matériaux au montage
   useEffect(() => {
@@ -185,17 +262,42 @@ export const useMaterials = () => {
     loadAllMaterials,
     refetch,
     
-    // Sélecteurs
+    // Sélecteurs de base
     getMaterialById,
     getAvailableMaterials,
+    getMaterialsByType,
+    getMaterialsByDifficulty,
+    getMaterialsWithSupports,
+    getMaterialsWithoutSupports,
+    getMaterialsByPriceRange,
+    getMaterialsByTemperature,
     
-    // Utilitaires prix
+    // Sélecteurs avancés
+    getCheapestMaterial,
+    getMostExpensiveMaterial,
+    getMaterialRecommendations,
+    
+    // Utilitaires types et couleurs
+    getUniqueTypes,
+    getUniqueColors,
+    groupMaterialsByType,
+    groupMaterialsByColor,
+    
+    // Utilitaires prix et calculs
     formatPrice,
+    getPrixParGramme,
+    getDensite,
     calculateCostForWeight,
     formatCalculatedCost,
+    calculateTotalPrice,
+    formatTotalPrice,
+    
+    // Calculs matériaux
+    calculateMaterialWeight,
     
     // Vérifications
     isMaterialAvailable,
+    requiresHeatedBed,
     
     // Fonctions avancées
     getMaterialsStats,
@@ -206,7 +308,14 @@ export const useMaterials = () => {
     hasError: !!error,
     isEmpty: materials.length === 0,
     availableCount: materials.filter(m => m.estDisponible).length,
-    totalCount: materials.length
+    totalCount: materials.length,
+    
+    // Statistiques rapides
+    typeCount: getUniqueTypes().length,
+    colorCount: getUniqueColors().length,
+    supportsRequiredCount: materials.filter(m => m.necessiteSupports).length,
+    easyMaterialsCount: materials.filter(m => m.difficulteImpression === 'facile').length,
+    difficultMaterialsCount: materials.filter(m => m.difficulteImpression === 'difficile').length
   };
 };
 
