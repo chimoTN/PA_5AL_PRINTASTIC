@@ -116,7 +116,7 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
     }
     
     setValidationErrors(prev => ({ ...prev, file: undefined }));
-    console.log('✅ Fichier sélectionné:', file.name);
+    // console.log('✅ Fichier sélectionné:', file.name);
   }, [isAuthenticated, isValid3DFile, acceptedFormats, maxSizeMB, onUploadError, customName]);
 
   // ✅ CORRECTION : Gestion upload avec les bons noms de propriétés
@@ -127,7 +127,7 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
     }
 
     try {
-      console.log('🔄 Début de l\'upload...');
+      // console.log('🔄 Début de l\'upload...');
       
       // ✅ CORRECTION : Utiliser les bons noms de propriétés
       const uploadData: FileClientUploadData = {
@@ -139,25 +139,25 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
         pays: country                              // ✅ OK
       };
 
-      console.log('📦 Données d\'upload:', {
-        fileName: uploadData.fichier.name,
-        customName: uploadData.nomPersonnalise,
-        displayName: getDisplayName(selectedFile, customName),
-        fileSize: `${(uploadData.fichier.size / 1024 / 1024).toFixed(2)}MB`,
-        scaling: uploadData.scaling,
-        description: uploadData.description,
-        materiauId: uploadData.materiauId,
-        pays: uploadData.pays
-      });
+      // console.log('📦 Données d\'upload:', {
+      //   fileName: uploadData.fichier.name,
+      //   customName: uploadData.nomPersonnalise,
+      //   displayName: getDisplayName(selectedFile, customName),
+      //   fileSize: `${(uploadData.fichier.size / 1024 / 1024).toFixed(2)}MB`,
+      //   scaling: uploadData.scaling,
+      //   description: uploadData.description,
+      //   materiauId: uploadData.materiauId,
+      //   pays: uploadData.pays
+      // });
 
       const result = await uploadFile(uploadData, (progressValue) => {
         console.log(`📊 Progression: ${progressValue}%`);
       });
       
-      console.log('🔍 Résultat upload:', result);
+      // console.log('🔍 Résultat upload:', result);
       
       if (result && result.success) {
-        console.log('✅ Upload réussi:', result);
+        // console.log('✅ Upload réussi:', result);
         handleReset();
         onUploadSuccess?.(result);
       } else {

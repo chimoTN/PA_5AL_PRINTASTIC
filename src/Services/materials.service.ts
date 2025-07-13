@@ -70,14 +70,14 @@ export const materialsService = {
    */
   async getAvailableMaterials(): Promise<Material[]> {
     try {
-      console.log('🔄 Récupération des matériaux disponibles...');
+      // console.log('🔄 Récupération des matériaux disponibles...');
       
       const response = await baseService.request<MaterialsResponse>('/materiaux/available', {
         method: 'GET',
       });
       
       if (response.success && response.data) {
-        console.log('✅ Matériaux disponibles chargés:', response.data.length);
+        // console.log('✅ Matériaux disponibles chargés:', response.data.length);
         return response.data;
       }
       
@@ -93,14 +93,14 @@ export const materialsService = {
    */
   async getAllMaterials(): Promise<Material[]> {
     try {
-      console.log('🔄 Récupération de tous les matériaux...');
+      // console.log('🔄 Récupération de tous les matériaux...');
       
       const response = await baseService.request<MaterialsResponse>('/materiaux/all', {
         method: 'GET',
       });
       
       if (response.success && response.data) {
-        console.log('✅ Tous les matériaux chargés:', response.data.length);
+        // console.log('✅ Tous les matériaux chargés:', response.data.length);
         return response.data;
       }
       
@@ -116,14 +116,14 @@ export const materialsService = {
    */
   async getMaterialById(id: number): Promise<Material | null> {
     try {
-      console.log('🔄 Récupération du matériau ID:', id);
+      // console.log('🔄 Récupération du matériau ID:', id);
       
       const response = await baseService.request<SingleMaterialResponse>(`/materiaux/${id}`, {
         method: 'GET',
       });
       
       if (response.success && response.data) {
-        console.log('✅ Matériau chargé:', response.data);
+        // console.log('✅ Matériau chargé:', response.data);
         return response.data;
       }
       
@@ -139,14 +139,14 @@ export const materialsService = {
    */
   async searchMaterials(query: string): Promise<Material[]> {
     try {
-      console.log('🔄 Recherche de matériaux:', query);
+      // console.log('🔄 Recherche de matériaux:', query);
       
       const response = await baseService.request<MaterialsResponse>(`/materiaux/search?q=${encodeURIComponent(query)}`, {
         method: 'GET',
       });
       
       if (response.success && response.data) {
-        console.log('✅ Matériaux trouvés:', response.data.length);
+        // console.log('✅ Matériaux trouvés:', response.data.length);
         return response.data;
       }
       
@@ -162,14 +162,14 @@ export const materialsService = {
    */
   async getMaterialsByType(type: string): Promise<Material[]> {
     try {
-      console.log('🔄 Récupération des matériaux par type:', type);
+      // console.log('🔄 Récupération des matériaux par type:', type);
       
       const response = await baseService.request<MaterialsResponse>(`/materiaux/type/${type}`, {
         method: 'GET',
       });
       
       if (response.success && response.data) {
-        console.log('✅ Matériaux par type chargés:', response.data.length);
+        // console.log('✅ Matériaux par type chargés:', response.data.length);
         return response.data;
       }
       
@@ -187,7 +187,7 @@ export const materialsService = {
    */
   async createMaterial(data: CreateMaterialData): Promise<MaterialActionResponse> {
     try {
-      console.log('🔄 Création d\'un nouveau matériau:', data);
+      // console.log('🔄 Création d\'un nouveau matériau:', data);
       
       const response = await baseService.request<MaterialActionResponse>('/materiaux/admin/create', {
         method: 'POST',
@@ -197,7 +197,7 @@ export const materialsService = {
         body: JSON.stringify(data),
       });
       
-      console.log('✅ Matériau créé:', response);
+      // console.log('✅ Matériau créé:', response);
       return response;
     } catch (error: any) {
       console.error('❌ Erreur createMaterial:', error);
@@ -213,7 +213,7 @@ export const materialsService = {
    */
   async updateMaterial(id: number, data: UpdateMaterialData): Promise<MaterialActionResponse> {
     try {
-      console.log('🔄 Mise à jour du matériau ID:', id, data);
+      // console.log('🔄 Mise à jour du matériau ID:', id, data);
       
       const response = await baseService.request<MaterialActionResponse>(`/materiaux/admin/${id}`, {
         method: 'PUT',
@@ -223,7 +223,7 @@ export const materialsService = {
         body: JSON.stringify(data),
       });
       
-      console.log('✅ Matériau mis à jour:', response);
+      // console.log('✅ Matériau mis à jour:', response);
       return response;
     } catch (error: any) {
       console.error('❌ Erreur updateMaterial:', error);
@@ -239,13 +239,13 @@ export const materialsService = {
    */
   async deleteMaterial(id: number): Promise<MaterialActionResponse> {
     try {
-      console.log('🔄 Suppression du matériau ID:', id);
+      // console.log('🔄 Suppression du matériau ID:', id);
       
       const response = await baseService.request<MaterialActionResponse>(`/materiaux/admin/${id}`, {
         method: 'DELETE',
       });
       
-      console.log('✅ Matériau supprimé:', response);
+      // console.log('✅ Matériau supprimé:', response);
       return response;
     } catch (error: any) {
       console.error('❌ Erreur deleteMaterial:', error);

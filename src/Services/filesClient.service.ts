@@ -140,15 +140,15 @@ export const filesClientService = {
     onProgress?: (progress: number) => void
   ): Promise<FileClientUploadResponse> {
     try {
-      console.log('📤 Début upload fichier client vers /api/modele3DClient/upload:', {
-        fileName: uploadData.fichier.name,
-        fileSize: uploadData.fichier.size,
-        scaling: uploadData.scaling,
-        description: uploadData.description,
-        materialId: uploadData.materiauId,
-        customName: uploadData.nomPersonnalise,
-        country: uploadData.pays
-      });
+      // // console.log('📤 Début upload fichier client vers /api/modele3DClient/upload:', {
+      //   fileName: uploadData.fichier.name,
+      //   fileSize: uploadData.fichier.size,
+      //   scaling: uploadData.scaling,
+      //   description: uploadData.description,
+      //   materialId: uploadData.materiauId,
+      //   customName: uploadData.nomPersonnalise,
+      //   country: uploadData.pays
+      // });
 
       // ✅ Créer le FormData avec les BONS noms de champs
       const formData = new FormData();
@@ -164,9 +164,9 @@ export const filesClientService = {
       }
 
       // ✅ Debug du FormData complet
-      console.log('📋 Contenu du FormData:');
+      // console.log('📋 Contenu du FormData:');
       for (const [key, value] of formData.entries()) {
-        console.log(`  ${key}:`, value);
+        // console.log(`  ${key}:`, value);
       }
 
       // ✅ Utiliser la route correcte
@@ -182,18 +182,18 @@ export const filesClientService = {
         onProgress
       );
 
-      console.log('✅ Upload réussi - Réponse complète:', response);
+      // console.log('✅ Upload réussi - Réponse complète:', response);
       
       // ✅ CORRECTION : Accès sécurisé aux données
       if (response.success && response.data) {
-        console.log('📊 Données du modèle créé:', {
-          modeleId: response.data.id,
-          nom: response.data.nom,
-          materiau: response.data.materiau?.nom,
-          taille: response.data.taille,
-          statut: response.data.statut,
-          prix: response.data.prix
-        });
+        // console.log('📊 Données du modèle créé:', {
+        //   modeleId: response.data.id,
+        //   nom: response.data.nom,
+        //   materiau: response.data.materiau?.nom,
+        //   taille: response.data.taille,
+        //   statut: response.data.statut,
+        //   prix: response.data.prix
+        // });
       }
 
       return response;
@@ -219,7 +219,7 @@ export const filesClientService = {
   // ✅ Récupérer tous les fichiers clients - CORRIGÉ
   async getFilesClient(showAll: boolean = false): Promise<FileClientListResponse> {
     try {
-      console.log('🔄 Récupération des fichiers client...');
+      // console.log('🔄 Récupération des fichiers client...');
       
       // ✅ Route avec paramètre showAll
       const endpoint = showAll ? '/modele3DClient?showAll=true' : '/modele3DClient/my-models';
@@ -227,10 +227,10 @@ export const filesClientService = {
       // ✅ Récupérer la réponse backend brute
       const backendResponse = await baseService.get<BackendFilesResponse>(endpoint);
       
-      console.log('📡 Réponse backend brute:', backendResponse);
-      console.log('🔍 backendResponse.success:', backendResponse.success);
-      console.log('🔍 backendResponse.data:', backendResponse.data);
-      console.log('🔍 Array.isArray(backendResponse.data):', Array.isArray(backendResponse.data));
+      // console.log('📡 Réponse backend brute:', backendResponse);
+      // console.log('🔍 backendResponse.success:', backendResponse.success);
+      // console.log('🔍 backendResponse.data:', backendResponse.data);
+      // console.log('🔍 Array.isArray(backendResponse.data):', Array.isArray(backendResponse.data));
       
       // ✅ Validation
       if (!backendResponse || !backendResponse.success) {
@@ -249,8 +249,8 @@ export const filesClientService = {
         message: backendResponse.message
       };
       
-      console.log('✅ Réponse transformée pour le hook:', transformedResponse);
-      console.log(`📋 ${transformedResponse.files.length} fichiers transformés`);
+      // console.log('✅ Réponse transformée pour le hook:', transformedResponse);
+      // console.log(`📋 ${transformedResponse.files.length} fichiers transformés`);
       
       return transformedResponse;
       
@@ -263,14 +263,14 @@ export const filesClientService = {
   // ✅ Récupérer un fichier client par ID - CORRIGÉ
   async getFileClientById(id: number): Promise<FileClientData | null> {
     try {
-      console.log('🔄 Récupération du fichier client ID:', id);
+      // console.log('🔄 Récupération du fichier client ID:', id);
       
       const response = await baseService.get<{
         success: boolean;
         data: FileClientData; // ✅ CORRECTION : "data" au lieu de "file"
       }>(`/modele3DClient/${id}`);
 
-      console.log('✅ Fichier client récupéré:', response);
+      // console.log('✅ Fichier client récupéré:', response);
       return response.data; // ✅ CORRECTION
       
     } catch (error: any) {
@@ -296,11 +296,11 @@ export const filesClientService = {
     data: UpdateFileClientVerificationData
   ): Promise<FileClientActionResponse> {
     try {
-      console.log('🔄 Mise à jour statut vérification fichier ID:', id, data);
+      // console.log('🔄 Mise à jour statut vérification fichier ID:', id, data);
       
       const response = await baseService.put<FileClientActionResponse>(`/modele3DClient/${id}/verification`, data);
 
-      console.log('✅ Statut de vérification mis à jour:', response);
+      // console.log('✅ Statut de vérification mis à jour:', response);
       return response;
       
     } catch (error: any) {

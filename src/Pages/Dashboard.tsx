@@ -114,7 +114,7 @@ const Dashboard: React.FC = () => {
     try {
       const isOwnerOrPrinter = user?.role === 'PROPRIETAIRE' || user?.role === 'IMPRIMEUR';
       await refreshFiles(isOwnerOrPrinter);
-      console.log('✅ Données du dashboard rafraîchies');
+      // console.log('✅ Données du dashboard rafraîchies');
     } catch (error) {
       console.error('❌ Erreur lors du rafraîchissement:', error);
     }
@@ -129,7 +129,7 @@ const Dashboard: React.FC = () => {
 
   // ✅ Gestion succès upload - VERSION CORRIGÉE
   const handleUploadSuccess = async (response?: any) => {
-    console.log('✅ Upload réussi:', response);
+    // console.log('✅ Upload réussi:', response);
     
     // ✅ Analyser la réponse pour extraire les informations
     let fileName = 'Fichier';
@@ -144,7 +144,7 @@ const Dashboard: React.FC = () => {
     
     // ✅ Afficher une notification de succès
     const displayName = customName || fileName;
-    console.log(`✅ Modèle "${displayName}" uploadé avec succès (ID: ${modelId})`);
+    // console.log(`✅ Modèle "${displayName}" uploadé avec succès (ID: ${modelId})`);
     
     createNotification(`Modèle "${displayName}" uploadé avec succès !`, 'success', 4000);
     
@@ -197,13 +197,13 @@ const Dashboard: React.FC = () => {
 
   // ✅ Handler pour les actions des fichiers
   const handleVerificationUpdate = async () => {
-    console.log('✅ Vérification mise à jour, rafraîchissement...');
+    // console.log('✅ Vérification mise à jour, rafraîchissement...');
     await handleRefresh();
   };
 
   // ✅ Handler pour quand un fichier est sélectionné/modifié
   const handleFileAction = () => {
-    console.log('📁 Action sur fichier, rafraîchissement...');
+    // console.log('📁 Action sur fichier, rafraîchissement...');
     setRefreshTrigger(prev => prev + 1);
   };
 
@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
                 showAllFiles={isOwnerOrPrinter}
                 onVerificationUpdate={handleVerificationUpdate}
                 onFileSelect={(file) => {
-                  console.log('📁 Fichier sélectionné:', file);
+                  // console.log('📁 Fichier sélectionné:', file);
                   handleFileAction();
                 }}
               />
