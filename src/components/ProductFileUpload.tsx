@@ -56,10 +56,10 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
 
   // Debug : Afficher l'état d'authentification
   useEffect(() => {
-    console.log('🔍 Debug ProductFileUpload:');
-    console.log('- Auth Loading:', authLoading);
-    console.log('- Is Authenticated:', isAuthenticated);
-    console.log('- Materials:', materials.length);
+    // console.log('🔍 Debug ProductFileUpload:');
+    // console.log('- Auth Loading:', authLoading);
+    // console.log('- Is Authenticated:', isAuthenticated);
+    // console.log('- Materials:', materials.length);
   }, [authLoading, isAuthenticated, materials]);
 
   // Validation du fichier
@@ -160,7 +160,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
 
     // Vérifier à nouveau l'authentification avant l'upload
     if (!isAuthenticated) {
-      console.log('🔄 Tentative de rafraîchissement de l\'authentification...');
+      // console.log('🔄 Tentative de rafraîchissement de l\'authentification...');
       await refreshAuth();
       
       if (!isAuthenticated) {
@@ -180,28 +180,30 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
       setUploadProgress(0);
       setValidationErrors([]);
 
-      console.log('🚀 Début upload avec authentification vérifiée');
-      console.log('📁 Fichier:', selectedFile.name);
-      console.log('👤 Authentifié:', isAuthenticated);
+      // console.log('🚀 Début upload avec authentification vérifiée');
+      // console.log('📁 Fichier:', selectedFile.name);
+      // console.log('👤 Authentifié:', isAuthenticated);
       
       // ✅ CORRECTION : Créer l'objet FileClientUploadData
       const uploadData: FileClientUploadData = {
-        file: selectedFile,
+        fichier: selectedFile,
         scaling: productData.scaling,
         description: productData.description,
-        idMatériau: productData.selectedMaterialId
+        materiauId: productData.selectedMaterialId,     // ✅ "materiauId" au lieu de "idMatériau"
+        nomPersonnalise: productData.nom,               // ✅ "nomPersonnalise" au lieu de "nom"
+        pays: 'France'                  // ✅ Ajout du champ "pays" manquant
       };
 
       const response = await filesClientService.uploadFileClient(
         uploadData,
         (progress) => {
-          console.log(`📊 Progression: ${progress}%`);
+          // console.log(`📊 Progression: ${progress}%`);
           setUploadProgress(progress);
         }
       );
 
       if (response.success) {
-        console.log('✅ Upload réussi:', response);
+        // console.log('✅ Upload réussi:', response);
         onUploadSuccess?.(response);
         
         // Reset du formulaire
@@ -226,7 +228,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
       
       // Gestion spécifique de l'erreur 401
       if (error.message.includes('401') || error.message.includes('Non authentifié')) {
-        console.log('🔄 Erreur 401 - Tentative de rafraîchissement...');
+        // console.log('🔄 Erreur 401 - Tentative de rafraîchissement...');
         await refreshAuth();
         onUploadError?.('Session expirée, veuillez vous reconnecter');
       } else {
@@ -375,7 +377,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
                 <option value="">Sélectionner un matériau</option>
                 {materials?.filter(m => m.estDisponible).map((material: Material) => (
                   <option key={material.id} value={material.id}>
-                    {material.nom} - {material.coutParGramme}€/g
+                    {material.nom} - {material.prixParGramme}€/g
                   </option>
                 ))}
               </select>
@@ -407,7 +409,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
                     <h4>📦 {selectedMaterial.nom}</h4>
                     <p>{selectedMaterial.description}</p>
                     <div className="material-cost">
-                      <span>Coût: <strong>{selectedMaterial.coutParGramme}€/gramme</strong></span>
+                      <span>Coût: <strong>{selectedMaterial.prixParGramme}€/gramme</strong></span>
                     </div>
                   </div>
                 );

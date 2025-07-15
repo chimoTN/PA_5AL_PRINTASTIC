@@ -1,239 +1,107 @@
-// src/services/filesClient.service.ts
+// 📁 src/services/filesClient.service.ts
 import { baseService } from "./base.service";
+import { 
+  FileClientListResponse, 
+  FileClientDeleteResponse, 
+  FileClientUploadProps,
+  Modele3DClient 
+} from '../types/FileClientData';
 
-// ✅ Interface pour la réponse backend (ce que le serveur envoie)
+// ✅ Types spécifiques au service (non exposés)
 interface BackendFilesResponse {
   success: boolean;
-  data: any[];           // ← Backend envoie "data"
-  count: number;
-  utilisateurId: number;
+  data: Modele3DClient[];
+  total: number;
+  pagination: {
+    limit: number;
+    offset: number;
+    total: number;
+  };
   message?: string;
 }
 
-// ✅ Interface pour les données d'upload - CORRIGÉE
-export interface FileClientUploadData {
-  fichier: File;           // ✅ CORRECTION : "fichier" au lieu de "file"
+interface FileClientUploadData {
+  fichier: File;
   scaling: number;
   description: string;
-  materiauId: number;      // ✅ CORRECTION : "materiauId" au lieu de "idMatériau"
-  nomPersonnalise?: string; // ✅ CORRECTION : "nomPersonnalise" au lieu de "nom"
+  materiauId: number;
+  nomPersonnalise?: string;
   pays: string;
 }
 
-// ✅ Interface pour la réponse d'upload - CORRIGÉE
-export interface FileClientUploadResponse {
+interface FileClientUploadResponse {
   success: boolean;
   message: string;
-  data: {
-    id: number;
-    fichier3dId: number;
-    materiauId: number;
-    utilisateurId: number;
-    nom: string;
-    description: string;
-    volume: string;
-    poidsMatiere: string;
-    longueur: string;
-    largeur: string;
-    hauteur: string;
-    estImprimable: boolean;
-    surfaceExterne: string;
-    tauxRemplissage: number;
-    necessiteSupports: boolean;
-    coutMateriau: string;
-    coutExpedition: string;
-    coutMain: string | null;
-    taille: string;
-    prix: string;
-    statut: string;
-    commentaire: string | null;
-    dateValidation: string | null;
-    dateCreation: string;
-    dateModification: string;
-    estVerifie: boolean;
-    commentaireVerification: string | null;
-    dateVerification: string | null;
-    fichier3D: {
-      nomFichier: string;
-      format: string;
-      tailleFichier: string;
-      dateCreation: string;
-    };
-    materiau: {
-      nom: string;
-      type: string;
-      couleur: string;
-      prixParGramme: string;
-    };
-  };
+  data: Modele3DClient;
 }
 
-// ✅ Interface pour les données de fichier client - CORRIGÉE
-export interface FileClientData {
-  id: number;
-  fichier3dId: number;
-  materiauId: number;
-  utilisateurId: number;
-  nom: string;
-  description: string;
-  volume: string;
-  poidsMatiere: string;
-  longueur: string;
-  largeur: string;
-  hauteur: string;
-  estImprimable: boolean;
-  surfaceExterne: string;
-  tauxRemplissage: number;
-  necessiteSupports: boolean;
-  coutMateriau: string;
-  coutExpedition: string;
-  coutMain: string | null;
-  taille: string;
-  prix: string;
-  statut: string;
-  commentaire: string | null;
-  dateValidation: string | null;
-  dateCreation: string;
-  dateModification: string;
-  estVerifie: boolean;
-  commentaireVerification: string | null;
-  dateVerification: string | null;
-  fichier3D?: {
-    nomFichier: string;
-    format: string;
-    tailleFichier: string;
-    dateCreation: string;
-  };
-  materiau?: {
-    nom: string;
-    type: string;
-    couleur: string;
-    prixParGramme: string;
-  };
-}
-
-// ✅ Interface pour la réponse des fichiers
-export interface FileClientListResponse {
-  success: boolean;
-  files: FileClientData[];
-  count: number;
-  message?: string;
-}
-
-// ✅ Interface pour les actions sur fichiers
-export interface FileClientActionResponse {
-  success: boolean;
-  message: string;
-  data?: any;
-}
-
-// ✅ Interface pour la mise à jour du statut
-export interface UpdateFileClientVerificationData {
+interface UpdateFileClientVerificationData {
   estVerifie: boolean;
   commentaireVerification?: string;
 }
 
 export const filesClientService = {
-  // ✅ CORRECTION : Upload avec les bons noms de champs
+  // ✅ Upload d'un fichier client
   async uploadFileClient(
     uploadData: FileClientUploadData,
     onProgress?: (progress: number) => void
   ): Promise<FileClientUploadResponse> {
     try {
-      // // console.log('📤 Début upload fichier client vers /api/modele3DClient/upload:', {
-      //   fileName: uploadData.fichier.name,
-      //   fileSize: uploadData.fichier.size,
-      //   scaling: uploadData.scaling,
-      //   description: uploadData.description,
-      //   materialId: uploadData.materiauId,
-      //   customName: uploadData.nomPersonnalise,
-      //   country: uploadData.pays
-      // });
-
-      // ✅ Créer le FormData avec les BONS noms de champs
       const formData = new FormData();
       formData.append('file', uploadData.fichier);
-      formData.append('scaling', uploadData.scaling.toString()); // ✅ CORRECTION
+      formData.append('scaling', uploadData.scaling.toString());
       formData.append('description', uploadData.description);
-      formData.append('materiauId', uploadData.materiauId.toString()); // ✅ CORRECTION
+      formData.append('materiauId', uploadData.materiauId.toString());
       formData.append('pays', uploadData.pays);
       
-      // ✅ AJOUT : Nom personnalisé (optionnel)
-      if (uploadData.nomPersonnalise && uploadData.nomPersonnalise.trim()) {
-        formData.append('nomPersonnalise', uploadData.nomPersonnalise.trim()); // ✅ CORRECTION
+      if (uploadData.nomPersonnalise?.trim()) {
+        formData.append('nomPersonnalise', uploadData.nomPersonnalise.trim());
       }
 
-      // ✅ Debug du FormData complet
-      // console.log('📋 Contenu du FormData:');
-      for (const [key, value] of formData.entries()) {
-        // console.log(`  ${key}:`, value);
-      }
-
-      // ✅ Utiliser la route correcte
       const response = await baseService.request<FileClientUploadResponse>(
-        '/modele3DClient/upload', // ✅ CORRECTION : Route cohérente
+        '/modele3DClient/upload',
         {
           method: 'POST',
           body: formData,
-          headers: {
-            // Ne pas définir Content-Type pour FormData (boundary automatique)
-          }
+          headers: {}
         },
         onProgress
       );
-
-      // console.log('✅ Upload réussi - Réponse complète:', response);
-      
-      // ✅ CORRECTION : Accès sécurisé aux données
-      if (response.success && response.data) {
-        // console.log('📊 Données du modèle créé:', {
-        //   modeleId: response.data.id,
-        //   nom: response.data.nom,
-        //   materiau: response.data.materiau?.nom,
-        //   taille: response.data.taille,
-        //   statut: response.data.statut,
-        //   prix: response.data.prix
-        // });
-      }
 
       return response;
       
     } catch (error: any) {
       console.error('❌ Erreur upload fichier client:', error);
       
-      // ✅ Gestion spécifique des erreurs d'upload
-      if (error.message.includes('401')) {
-        throw new Error('Vous devez être connecté pour uploader un fichier');
-      } else if (error.message.includes('413')) {
-        throw new Error('Le fichier est trop volumineux');
-      } else if (error.message.includes('415')) {
-        throw new Error('Format de fichier non supporté');
-      } else if (error.message.includes('400')) {
-        throw new Error('Données d\'upload invalides');
+      const errorMessages: Record<string, string> = {
+        '401': 'Vous devez être connecté pour uploader un fichier',
+        '413': 'Le fichier est trop volumineux',
+        '415': 'Format de fichier non supporté',
+        '400': 'Données d\'upload invalides'
+      };
+      
+      const errorCode = Object.keys(errorMessages).find(code => 
+        error.message.includes(code)
+      );
+      
+      if (errorCode) {
+        throw new Error(errorMessages[errorCode]);
       }
       
       throw error;
     }
   },
 
-  // ✅ Récupérer tous les fichiers clients - CORRIGÉ
+  // ✅ Récupérer tous les fichiers clients
   async getFilesClient(showAll: boolean = false): Promise<FileClientListResponse> {
     try {
-      // console.log('🔄 Récupération des fichiers client...');
+      const endpoint = showAll 
+        ? '/modele3DClient?showAll=true' 
+        : '/modele3DClient/my-models';
       
-      // ✅ Route avec paramètre showAll
-      const endpoint = showAll ? '/modele3DClient?showAll=true' : '/modele3DClient/my-models';
-      
-      // ✅ Récupérer la réponse backend brute
       const backendResponse = await baseService.get<BackendFilesResponse>(endpoint);
       
-      // console.log('📡 Réponse backend brute:', backendResponse);
-      // console.log('🔍 backendResponse.success:', backendResponse.success);
-      // console.log('🔍 backendResponse.data:', backendResponse.data);
-      // console.log('🔍 Array.isArray(backendResponse.data):', Array.isArray(backendResponse.data));
-      
-      // ✅ Validation
-      if (!backendResponse || !backendResponse.success) {
+      if (!backendResponse?.success) {
         throw new Error('Réponse invalide du serveur');
       }
       
@@ -241,16 +109,14 @@ export const filesClientService = {
         throw new Error('Format de données invalide - data n\'est pas un tableau');
       }
       
-      // ✅ TRANSFORMATION : data → files (C'EST LE POINT CLÉ !)
+      // ✅ Transformation selon l'interface centralisée
       const transformedResponse: FileClientListResponse = {
         success: backendResponse.success,
-        files: backendResponse.data,        // ✅ data devient files
-        count: backendResponse.count,
+        data: backendResponse.data,
+        total: backendResponse.total,
+        pagination: backendResponse.pagination,
         message: backendResponse.message
       };
-      
-      // console.log('✅ Réponse transformée pour le hook:', transformedResponse);
-      // console.log(`📋 ${transformedResponse.files.length} fichiers transformés`);
       
       return transformedResponse;
       
@@ -260,18 +126,15 @@ export const filesClientService = {
     }
   },
 
-  // ✅ Récupérer un fichier client par ID - CORRIGÉ
-  async getFileClientById(id: number): Promise<FileClientData | null> {
+  // ✅ Récupérer un fichier client par ID
+  async getFileClientById(id: number): Promise<Modele3DClient | null> {
     try {
-      // console.log('🔄 Récupération du fichier client ID:', id);
-      
       const response = await baseService.get<{
         success: boolean;
-        data: FileClientData; // ✅ CORRECTION : "data" au lieu de "file"
+        data: Modele3DClient;
       }>(`/modele3DClient/${id}`);
 
-      // console.log('✅ Fichier client récupéré:', response);
-      return response.data; // ✅ CORRECTION
+      return response.data;
       
     } catch (error: any) {
       console.error('❌ Erreur getFileClientById:', error);
@@ -280,9 +143,9 @@ export const filesClientService = {
   },
 
   // ✅ Supprimer un fichier client
-  async deleteFileClient(id: number): Promise<FileClientActionResponse> {
+  async deleteFileClient(id: number): Promise<FileClientDeleteResponse> {
     try {
-      const response = await baseService.delete<FileClientActionResponse>(`/modele3DClient/${id}`);
+      const response = await baseService.delete<FileClientDeleteResponse>(`/modele3DClient/${id}`);
       return response;
     } catch (error) {
       console.error('❌ Erreur deleteFileClient:', error);
@@ -294,13 +157,13 @@ export const filesClientService = {
   async updateFileClientVerificationStatus(
     id: number, 
     data: UpdateFileClientVerificationData
-  ): Promise<FileClientActionResponse> {
+  ): Promise<FileClientDeleteResponse> {
     try {
-      // console.log('🔄 Mise à jour statut vérification fichier ID:', id, data);
-      
-      const response = await baseService.put<FileClientActionResponse>(`/modele3DClient/${id}/verification`, data);
+      const response = await baseService.put<FileClientDeleteResponse>(
+        `/modele3DClient/${id}/verification`, 
+        data
+      );
 
-      // console.log('✅ Statut de vérification mis à jour:', response);
       return response;
       
     } catch (error: any) {
@@ -311,15 +174,13 @@ export const filesClientService = {
 
   // ✅ Utilitaires
   getFileIcon(filename?: string | null): string {
-    // ✅ Protection contre undefined/null
     if (!filename || typeof filename !== 'string') {
-      console.warn('⚠️ getFileIcon reçu:', filename);
       return 'fas fa-file';
     }
     
     const extension = filename.split('.').pop()?.toLowerCase();
     
-    const iconMap: { [key: string]: string } = {
+    const iconMap: Record<string, string> = {
       'stl': 'fas fa-cube',
       'obj': 'fas fa-shapes',
       'ply': 'fas fa-gem',
@@ -356,3 +217,6 @@ export const filesClientService = {
     }).format(new Date(dateString));
   }
 };
+
+// ✅ Export des types spécifiques si nécessaire
+export type { FileClientUploadData, UpdateFileClientVerificationData };
