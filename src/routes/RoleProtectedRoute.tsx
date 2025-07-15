@@ -5,7 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
-  roles: Array<'ADMIN' | 'CLIENT' | 'IMPRIMEUR'>;
+  roles: Array<'PROPRIETAIRE' | 'CLIENT' | 'IMPRIMEUR'>;
   redirectTo?: string;
 }
 

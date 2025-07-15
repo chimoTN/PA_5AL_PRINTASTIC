@@ -4,6 +4,7 @@ import { Badge, Card, Container, ListGroup, Alert, Spinner } from 'react-bootstr
 import { useLocation, useNavigate } from 'react-router-dom';
 import { commandeService } from '../Services/commande.service';
 import { useAuth } from '../hooks/useAuth';
+import FacturePDFGenerator from '../utilis/pdf/FacturePDFGenerator';
 
 const statutColors: Record<string, string> = {
   'en_attente': 'warning',
@@ -298,7 +299,11 @@ const CommandesClient = () => {
       )}
 
       {commandes.map((commande) => (
-        <Card key={commande.id} className="mb-4 shadow-sm" style={{ backgroundColor: '#f9f9f9' }}>
+        <Card
+          key={commande.id}
+          className="mb-4 shadow-sm"
+          style={{ backgroundColor: '#f9f9f9' }}
+        >
           <Card.Header className="d-flex justify-content-between align-items-center">
             <div>
               <strong>Commande #{commande.reference}</strong> — {formatPrice(commande.prixTotal)} €
@@ -495,6 +500,52 @@ const CommandesClient = () => {
           </Card.Body>
         </Card>
       ))}
+
+      {/* Modal de réclamation */}
+      <Modal show={showModal} onHide={() => setShowModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Signaler un problème</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {/* Sélection du libellé de réclamation */}
+          <Form.Group className="mb-3">
+            <Form.Label>Libellé de la réclamation</Form.Label>
+            <Form.Select
+              value={selectedLibelle}
+              onChange={(e) => setSelectedLibelle(e.target.value)}
+            >
+              <option value="">-- Choisir une raison --</option>
+              <option value="non livré">Non livré</option>
+              <option value="défectueux">Défectueux</option>
+              <option value="pas le bon produit">Pas le bon produit</option>
+              <option value="cassé">Cassé</option>
+            </Form.Select>
+          </Form.Group>
+
+          {/* Description libre */}
+          <Form.Group>
+            <Form.Label>Description détaillée</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Annuler
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleSignalSubmit}
+            disabled={!reason.trim()}
+          >
+            Faire une réclamation
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };
