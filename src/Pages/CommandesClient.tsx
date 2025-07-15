@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { commandeService } from '../services/commande.service';
 import reclamationService from '../Services/reclamation.service ';
 import { useAuth } from '../hooks/useAuth';
+import FacturePDFGenerator from '../utilis/pdf/FacturePDFGenerator';
 
 const statutColors: Record<string, string> = {
   'en attente': 'warning',
@@ -165,6 +166,9 @@ const handleSignalSubmit = async () => {
             </ListGroup>
 
             <div className="text-end mt-3">
+              
+              <FacturePDFGenerator commande={commande} />
+
               <Button variant="dark" size="sm">
                 Détails de la commande
               </Button>

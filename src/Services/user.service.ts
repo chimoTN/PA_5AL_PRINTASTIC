@@ -2,6 +2,7 @@
 import axios from 'axios';
 
 const API_URL = 'http://localhost:3000/api/auth';
+const API_URL_IMPRIMEUR = 'http://localhost:3000/api/imprimeur';
 
 export interface NewUser  {
   nom: string;
@@ -25,7 +26,7 @@ export const userService = {
   async inscriptionImprimeur(payload) {
     try {
       const response = await axios.post(
-        `${API_URL}/inscription/imprimeur`,
+        `${API_URL_IMPRIMEUR}/inscription/imprimeur`,
         payload
       );
       return response.data; // { success: true, data: { requestId, status } }

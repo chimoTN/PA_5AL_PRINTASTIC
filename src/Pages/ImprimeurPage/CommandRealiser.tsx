@@ -1,226 +1,192 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Container, Row, Col, Card, Table, Form
+  Container, Row, Col, Card, Table, Spinner
 } from 'react-bootstrap';
 import {
-  BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,CartesianGrid, LineChart, Line
+  LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid
 } from 'recharts';
-
-import DatePicker from 'react-datepicker';
-import "react-datepicker/dist/react-datepicker.css";
-import { Spinner } from 'react-bootstrap';
-import { InputGroup, FormControl } from 'react-bootstrap';
+import { impressionService } from '../../services/impression.service';
 import DateInput from '../../components/DateInput';
-// Mock données commandes
-const mockCommandes = [
-  {
-    id: 1,
-    date: '2025-07-01',
-    produit: 'Figurine Dragon',
-    quantite: 2,
-    prixUnitaire: 25,
-    coutMatiere: 5
-  },
-  {
-    id: 2,
-    date: '2025-06-25',
-    produit: 'Robot Guerrier',
-    quantite: 1,
-    prixUnitaire: 40,
-    coutMatiere: 10
-  },
-];
+import { useAuth } from '../../hooks/useAuth';
 
-const dataRepartition = [
-  { name: 'Bénéfices', value: 1800 },
-  { name: 'Coûts MP', value: 450 },
-];
-
-const COLORS = ['#4caf50', '#f44336'];
+const COLORS = ['#4caf50', '#f44336', '#2196f3'];
 
 const CommandRealiser = () => {
-  const [periode, setPeriode] = useState<'Ce mois' | '3 mois' | '6 mois' | '1 an' | 'Cette année'>('Ce mois');
-  const [data, setData] = useState<{ date: string; revenus: number }[]>([]);
+  const [acceptedOrders, setAcceptedOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  
-  // Simule un appel API avec delay
-  const fetchDonneesParPeriode = async (periode: string) => {
-    setLoading(true);
-
-    // Simule un délai réseau
-    await new Promise((res) => setTimeout(res, 500));
-
-    // Exemple d’un backend qui renverrait un tableau brut (pouvant changer de structure)
-    const responseMock = {
-      data: [
-        { label: '01/07', valeur: 120 },
-        { label: '05/07', valeur: 200 },
-        { label: '10/07', valeur: 150 },
-        { label: '15/07', valeur: 300 },
-        { label: '20/07', valeur: 250 },
-        { label: '25/07', valeur: 320 },
-      ],
-    };
-
-    // Parser pour s'assurer du format compatible avec Recharts
-    const parsed = responseMock.data.map((entry) => ({
-      date: entry.label,
-      revenus: entry.valeur,
-    }));
-
-    setData(parsed);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    fetchDonneesParPeriode(periode);
-  }, [periode]);
-
-  const [dateFiltre, setDateFiltre] = useState('');
-
-  const commandesFiltrées = mockCommandes.filter(cmd =>
-    dateFiltre ? cmd.date === dateFiltre : true
-  );
-
-  const totalBénéfices = commandesFiltrées.reduce((acc, cmd) => acc + ((cmd.prixUnitaire - cmd.coutMatiere) * cmd.quantite), 0);
-  const totalCout = commandesFiltrées.reduce((acc, cmd) => acc + (cmd.coutMatiere * cmd.quantite), 0);
-  const totalRevenu = commandesFiltrées.reduce((acc, cmd) => acc + (cmd.prixUnitaire * cmd.quantite), 0);
+  const [dataTrend, setDataTrend] = useState<{ date: string; revenus: number }[]>([]);
+  const [dataRepartition, setDataRepartition] = useState<any[]>([]);
 
   const [range, setRange] = useState<[Date | null, Date | null]>([null, null]);
   const [startDate, endDate] = range;
 
+  const { user } = useAuth();
+
+  const formatDate = (iso: string) => {
+    const date = new Date(iso);
+    return isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fr-FR');
+  };
+
+  const fetchAccepted = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const data = await impressionService.getCommandesImprimeur(user.id);
+      const delivered = data.filter((d: any) => d.statut === 'livré');
+      setAcceptedOrders(delivered);
+    } catch (err) {
+      console.error('Erreur lors du chargement des commandes :', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccepted();
+  }, [user]);
+
+  const filteredOrders = useMemo(() => {
+    return acceptedOrders.filter(o => {
+      const date = new Date(o.createdAt);
+      if (isNaN(date.getTime())) return false;
+      if (startDate && date < startDate) return false;
+      if (endDate && date > endDate) return false;
+      return true;
+    });
+  }, [acceptedOrders, startDate, endDate]);
+
+  const totalCommandes = filteredOrders.length;
+
+  const averageDelai = useMemo(() => {
+    const delais = filteredOrders.map(o => {
+      const debut = new Date(o.commande?.createdAt);
+      const fin = new Date(o.createdAt);
+      return (fin.getTime() - debut.getTime()) / (1000 * 3600 * 24);
+    }).filter(n => !isNaN(n));
+
+    if (delais.length === 0) return 0;
+    const somme = delais.reduce((acc, d) => acc + d, 0);
+    return somme / delais.length;
+  }, [filteredOrders]);
+
+  useEffect(() => {
+    let printerTotal = 0, companyTotal = 0, feesTotal = 0;
+
+    filteredOrders.forEach(o => {
+      const price = parseFloat(o.prixUnitaire || '0');
+      const qty = o.quantite ?? 0;
+      const total = price * qty;
+      printerTotal += total * 0.05;
+      companyTotal += total * 0.02;
+      feesTotal += total * 0.93;
+    });
+
+    setDataRepartition([
+      { name: 'Imprimeur (5%)', value: +printerTotal.toFixed(2) },
+      { name: 'Entreprise (2%)', value: +companyTotal.toFixed(2) },
+      { name: 'Frais Fabrication', value: +feesTotal.toFixed(2) }
+    ]);
+
+    const trend = filteredOrders.map(o => ({
+      date: new Date(o.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }),
+      revenus: parseFloat(o.prixUnitaire || '0') * (o.quantite ?? 0)
+    }));
+
+    setDataTrend(trend);
+  }, [filteredOrders]);
+
   return (
     <Container fluid className="py-4">
-      {/* Commandes passées */}
       <Card className="mb-4 shadow">
         <Card.Header className="d-flex justify-content-between align-items-center">
-          <h4>📦 Historique des commandes</h4>
-
-          <DateInput dateFiltre={dateFiltre} setDateFiltre={setDateFiltre} />
-
+          <h4>📦 Commandes Réalisées</h4>
+          <DateInput startDate={startDate} endDate={endDate} setRange={setRange} />
         </Card.Header>
         <Card.Body>
-          <Table responsive bordered hover>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Produit</th>
-                <th>Quantité</th>
-                <th>Prix Unitaire (€)</th>
-                <th>Coût MP (€)</th>
-                <th>Revenu (€)</th>
-                <th>Bénéfice (€)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {commandesFiltrées.map((cmd) => (
-                <tr key={cmd.id}>
-                  <td>{cmd.date}</td>
-                  <td>{cmd.produit}</td>
-                  <td>{cmd.quantite}</td>
-                  <td>{cmd.prixUnitaire}</td>
-                  <td>{cmd.coutMatiere}</td>
-                  <td>{(cmd.prixUnitaire * cmd.quantite).toFixed(2)}</td>
-                  <td>{((cmd.prixUnitaire - cmd.coutMatiere) * cmd.quantite).toFixed(2)}</td>
+          {loading ? (
+            <div className="text-center py-5"><Spinner animation="border" /></div>
+          ) : (
+            <Table responsive bordered hover>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Produit</th>
+                  <th>Quantité</th>
+                  <th>Prix Unitaire (€)</th>
+                  <th>Part Imprimeur (€)</th>
+                  <th>Part Entreprise (€)</th>
+                  <th>Frais Fabrication (€)</th>
                 </tr>
-              ))}
-            </tbody>
-          </Table>
+              </thead>
+              <tbody>
+                {filteredOrders.length ? filteredOrders.map(o => {
+                  const price = parseFloat(o.prixUnitaire || '0');
+                  const qty = o.quantite ?? 0;
+                  const total = price * qty;
+                  return (
+                    <tr key={o.id}>
+                      <td>{formatDate(o.createdAt)}</td>
+                      <td>{o.produit?.nom || '—'}</td>
+                      <td>{qty}</td>
+                      <td>{price.toFixed(2)}</td>
+                      <td>{(total * 0.05).toFixed(2)}</td>
+                      <td>{(total * 0.02).toFixed(2)}</td>
+                      <td>{(total * 0.93).toFixed(2)}</td>
+                    </tr>
+                  );
+                }) : (
+                  <tr><td colSpan={7} className="text-center">Aucune commande réalisée sur cette période.</td></tr>
+                )}
+              </tbody>
+            </Table>
+          )}
         </Card.Body>
       </Card>
 
-      {/* Résumé financier */}
       <Card className="mb-4 text-center shadow">
-        <Card.Header><h5>💰 Résumé financier</h5></Card.Header>
+        <Card.Header><h5>📊 Statistiques générales</h5></Card.Header>
         <Card.Body>
           <Row>
-            <Col><h6 className="text-success">Bénéfices</h6><p>{totalBénéfices.toFixed(2)} €</p></Col>
-            <Col><h6 className="text-danger">Coûts MP</h6><p>{totalCout.toFixed(2)} €</p></Col>
-            <Col><h6 className="fw-bold">Revenus totaux</h6><p>{totalRevenu.toFixed(2)} €</p></Col>
+            <Col><h6 className="text-primary">Commandes livrées</h6><p>{totalCommandes}</p></Col>
+            <Col><h6 className="text-warning">Délai moyen</h6><p>{averageDelai.toFixed(1)} jours</p></Col>
           </Row>
         </Card.Body>
       </Card>
 
-      {/* Graphiques */}
       <Row>
-           <Col md={6}>
-            <Card className="shadow">
-              <Card.Header>
-                <h6>📈 Revenus ({periode.toLowerCase()})</h6>
-              </Card.Header>
-              <Card.Body>
-                <Form.Select
-                  className="mb-3"
-                  value={periode}
-                  onChange={(e) => setPeriode(e.target.value as typeof periode)}
-                >
-                  <option>Ce mois</option>
-                  <option>3 mois</option>
-                  <option>6 mois</option>
-                  <option>1 an</option>
-                  <option>Cette année</option>
-                </Form.Select>
-
-                {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" variant="primary" />
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={data}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="revenus" stroke="#007bff" strokeWidth={2} dot />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </Card.Body>
-            </Card>
-          </Col>
-
         <Col md={6}>
-          <Card className="shadow">
-            <Card.Header><h6>🧾 Répartition revenus / coûts</h6></Card.Header>
+          <Card className="shadow mb-4">
+            <Card.Header><h6>📈 Évolution des revenus</h6></Card.Header>
             <Card.Body>
-              <Form.Select
-                  className="mb-3"
-                  value={periode}
-                  onChange={(e) => setPeriode(e.target.value as typeof periode)}
-                >
-                  <option>Ce mois</option>
-                  <option>3 mois</option>
-                  <option>6 mois</option>
-                  <option>1 an</option>
-                  <option>Cette année</option>
-                </Form.Select>
-
-                {loading ? (
-                  <div className="text-center py-5">
-                    <Spinner animation="border" variant="primary" />
-                  </div>
-                ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={dataRepartition}
-                      cx="50%"
-                      cy="50%"
-                      outerRadius={90}
-                      label
-                      dataKey="value"
-                    >
-                      {dataRepartition.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-                )}
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={dataTrend}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="date" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="revenus" stroke="#007bff" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={6}>
+          <Card className="shadow mb-4">
+            <Card.Header><h6>🧾 Répartition des revenus</h6></Card.Header>
+            <Card.Body>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie data={dataRepartition} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label>
+                    {dataRepartition.map((entry, idx) => (
+                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
             </Card.Body>
           </Card>
         </Col>

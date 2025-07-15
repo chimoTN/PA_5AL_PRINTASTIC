@@ -61,5 +61,15 @@ export const signalementService = {
       );
       throw new Error('Impossible de récupérer les signalements.');
     }
+  },
+
+  async getAllSignalements(): Promise<any[]> {
+    try {
+      const res: AxiosResponse<any[]> = await axios.get(`${API_URL}/getAllSignalement`);
+      return res.data;
+    } catch (err) {
+      console.error(`❌ Erreur lors de la récupération de tous les signalements :`, err);
+      throw new Error("Impossible de récupérer les signalements.");
+    }
   }
 };

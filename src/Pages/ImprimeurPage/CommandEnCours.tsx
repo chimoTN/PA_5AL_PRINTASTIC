@@ -18,6 +18,7 @@ const CommandEnCours = () => {
   const [signalType, setSignalType] = useState<TypeSignalement>(TypeSignalement.FICHIER_ENDOMMAGE);
   const [submitting, setSubmitting] = useState(false);
 
+
   const open = () => {
     console.log("🚨 OPEN MODAL TRIGGERED");
     setShowModal(true);
@@ -38,11 +39,19 @@ const CommandEnCours = () => {
   const fetchAccepted = async () => {
     try {
       const data = await impressionService.getCommandesImprimeur(user.id);
-      setAcceptedOrders(data);
+
+      // Ici data est Array<DetailCommande>, on ne garde que ceux non livrés
+      const nonLivrees = data.filter((detail: any) => detail.statut !== 'livré');
+
+      console.log('Commandes acceptées (non livrées) :', nonLivrees);
+      setAcceptedOrders(nonLivrees);
     } catch (err) {
       console.error('❌ Erreur chargement commandes acceptées :', err);
     }
   };
+
+
+
 
   const renderStatusBadge = (status) => {
     switch (status) {
@@ -139,6 +148,7 @@ const CommandEnCours = () => {
                 </div>
               )}
 
+              {acceptedOrders.length > 0 && (
               <Table striped bordered hover responsive>
                 <thead>
                   <tr>
@@ -178,6 +188,7 @@ const CommandEnCours = () => {
                   ))}
                 </tbody>
               </Table>
+              )}
             </Card.Body>
           </Card>
         </Col>

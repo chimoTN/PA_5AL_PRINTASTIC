@@ -5,6 +5,10 @@ interface Signalement {
   type: string;
   date: string;
   produit: string;
+  reference: string;
+  quantite: number;
+  statut: string;
+  imprimeurId: number | null;
 }
 
 interface Props {

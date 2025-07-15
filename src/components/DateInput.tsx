@@ -1,39 +1,37 @@
-import React, { useRef } from 'react';
-import { Form } from 'react-bootstrap';
+// src/components/DateInput.tsx
+import React from 'react';
+import DatePicker from 'react-datepicker';
+import { InputGroup, FormControl } from 'react-bootstrap';
+import { FaCalendarAlt } from 'react-icons/fa';
+import "react-datepicker/dist/react-datepicker.css";
 
-const DateInput = ({ dateFiltre, setDateFiltre }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleIconClick = () => {
-    if (inputRef.current) {
-      inputRef.current.showPicker?.(); // pour navigateurs récents
-      inputRef.current.focus(); // fallback
-    }
-  };
+interface Props {
+  startDate: Date | null;
+  endDate: Date | null;
+  setRange: (range: [Date | null, Date | null]) => void;
+}
 
+export default function DateInput({ startDate, endDate, setRange }: Props) {
   return (
-    <div style={{ position: 'relative', display: 'inline-block', maxWidth: '200px' }}>
-      <Form.Control
-        ref={inputRef}
-        type="date"
-        value={dateFiltre}
-        onChange={(e) => setDateFiltre(e.target.value)}
-        style={{ paddingRight: '40px' }}
-      />
-      <i
-        className="fas fa-calendar-alt"
-        onClick={handleIconClick}
-        style={{
-          position: 'absolute',
-          right: '10px',
-          top: '50%',
-          transform: 'translateY(-50%)',
-          color: '#007bff',
-          cursor: 'pointer',
+    <InputGroup style={{ maxWidth: 250 }}>
+      <InputGroup.Text>
+        <FaCalendarAlt />
+      </InputGroup.Text>
+      <DatePicker
+        selected={startDate}
+        onChange={dates => {
+          const [start, end] = dates as [Date, Date];
+          setRange([start, end]);
         }}
+        startDate={startDate}
+        endDate={endDate}
+        selectsRange
+        isClearable
+        placeholderText="Sélectionnez une plage"
+        customInput={<FormControl />}
+        dateFormat="yyyy-MM-dd"
       />
-    </div>
+    </InputGroup>
   );
-};
-
-export default DateInput;
+}

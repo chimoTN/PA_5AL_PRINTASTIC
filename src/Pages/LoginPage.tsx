@@ -1,5 +1,5 @@
 // src/Pages/LoginPage.tsx
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { userService } from '../services/user.service';
@@ -10,7 +10,7 @@ import '../assets/styles/LoginPage.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [acceptCGU, setAcceptCGU] = useState(false);
@@ -26,6 +26,23 @@ const LoginPage = () => {
     motDePasse: '',
   });
 
+  useEffect(() => {
+    if (user) {
+      switch (user.role) {
+        case 'PROPRIETAIRE':
+          navigate('/dashboard/admin', { replace: true });
+          break;
+        case 'IMPRIMEUR':
+          navigate('/dashboard/impression', { replace: true });
+          break;
+        case 'CLIENT':
+        default:
+          navigate('/dashboard/client', { replace: true });
+          break;
+      }
+    }
+  }, [user]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -39,10 +56,6 @@ const LoginPage = () => {
       setError('');
 
       await login(email.trim(), motDePasse);
-
-      setTimeout(() => {
-        navigate('/dashboard/client');
-      }, 100);
 
     } catch (error: any) {
        console.error('❌ Erreur lors de la connexion:', error);

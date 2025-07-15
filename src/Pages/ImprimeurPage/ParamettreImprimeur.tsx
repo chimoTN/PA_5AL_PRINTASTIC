@@ -1,32 +1,93 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Button } from 'react-bootstrap';
+import { generateImpressionReport } from '../../utilis/pdf/generateImpressionReport';
+import { useAuth } from '../../hooks/useAuth';
+import { impressionService } from '../../services/impression.service';
 
 const ProfilImprimeur: React.FC = () => {
   const [activeTab, setActiveTab] = useState('info');
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState('all');
+  const [commandesLivrees, setCommandesLivrees] = useState<any[]>([]);
+  const [moisDispo, setMoisDispo] = useState<{ label: string; value: string }[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const [infos, setInfos] = useState({
+  const { user } = useAuth();
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    // A adapter si tu as d'autres champs modifiables plus tard
+  };
+
+  const handleSave = () => {
+    setIsEditing(false);
+    // TODO: sauvegarder les infos modifiées (à implémenter si besoin)
+  };
+
+  const moisLabel = [
+    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+  ];
+
+  const extraireMoisUtilises = (commandes: any[]) => {
+    const moisSet = new Set<string>();
+
+    commandes.forEach((cmd) => {
+      if (cmd.createdAt) {
+        const mois = cmd.createdAt.slice(0, 7); // 'YYYY-MM'
+        moisSet.add(mois);
+      }
+    });
+
+    const moisLabel = [
+      'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+      'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+    ];
+
+    return Array.from(moisSet)
+      .sort((a, b) => b.localeCompare(a)) // tri du plus récent au plus ancien
+      .map((val) => {
+        const [year, month] = val.split('-');
+        return {
+          label: `${moisLabel[+month - 1]} ${year}`,
+          value: val,
+        };
+      });
+  };
+
+
+  const fetchAccepted = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      const data = await impressionService.getCommandesImprimeur(user.id);
+      const delivered = data.filter((d: any) => d.statut === 'livré');
+      setCommandesLivrees(delivered);
+      setMoisDispo(extraireMoisUtilises(delivered));
+    } catch (err) {
+      console.error('Erreur lors du chargement des commandes :', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAccepted();
+  }, []);
+
+  const infosEntreprise = {
     nomEntreprise: 'PrintLab Lyon',
     email: 'contact@printlab.fr',
     telephone: '06 12 34 56 78',
     adresse: '12 rue de l’Impression, 69001 Lyon',
     siret: '123 456 789 00010',
-    statut: 'Disponible',
+        statut: 'Disponible',
     capacite: 5,
     delai: 2,
     transporteur: 'La Poste',
     iban: 'FR76 XXXX XXXX XXXX XXXX',
     identite: 'piece_identite.pdf',
     justificatif: 'kbis.pdf',
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setInfos((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSave = () => {
-    setIsEditing(false);
   };
 
   return (
@@ -56,47 +117,59 @@ const ProfilImprimeur: React.FC = () => {
         </Col>
 
         <Col md={9}>
-            <div className="profile-content">
-                <div className="profile-card">
-                    <div className="card-content">
-            {activeTab === 'info' && (
-            <>
-                <div className="card-header">
-                    <h2>Informations personnelles</h2>
-                </div>
+          <div className="profile-content">
+            <div className="profile-card">
+              <div className="card-content">
+                {activeTab === 'info' && (
+                  <>
+                    <div className="card-header">
+                        <h2>Informations personnelles</h2>
+                    </div>
 
-                {renderField('Nom de l’entreprise', 'nomEntreprise', infos.nomEntreprise, isEditing, handleChange)}
-                {renderField('Email professionnel', 'email', infos.email, isEditing, handleChange)}
-                {renderField('Téléphone', 'telephone', infos.telephone, isEditing, handleChange)}
-                {renderField('Adresse', 'adresse', infos.adresse, isEditing, handleChange)}
-                {renderField('SIRET', 'siret', infos.siret, isEditing, handleChange)}
+                    {renderField('Nom de l’entreprise', 'nomEntreprise', infosEntreprise.nomEntreprise, isEditing, handleChange)}
+                    {renderField('Email professionnel', 'email', infosEntreprise.email, isEditing, handleChange)}
+                    {renderField('Téléphone', 'telephone', infosEntreprise.telephone, isEditing, handleChange)}
+                    {renderField('Adresse', 'adresse', infosEntreprise.adresse, isEditing, handleChange)}
+                    {renderField('SIRET', 'siret', infosEntreprise.siret, isEditing, handleChange)}
 
-                {renderButtons(isEditing, setIsEditing, handleSave)}
+                    {renderButtons(isEditing, setIsEditing, handleSave)}
+                  </>
+                )}
+
+              {activeTab === 'pro' && (
+                <>
+                  <h2>🛠 Paramètres professionnels</h2>
+                  {renderSelect('Statut', 'statut', infosEntreprise.statut, ['Disponible', 'Indisponible'], isEditing, handleChange)}
+                  {renderButtons(isEditing, setIsEditing, handleSave)}
                 </>
-            )}
+              )}
 
-          {activeTab === 'pro' && (
-            <>
-              <h2>🛠 Paramètres professionnels</h2>
-              {renderSelect('Statut', 'statut', infos.statut, ['Disponible', 'Indisponible'], isEditing, handleChange)}
-              {renderButtons(isEditing, setIsEditing, handleSave)}
-            </>
-          )}
+                {activeTab === 'documents' && (
+                  <>
+                    <h2>📄 Documents</h2>
+                    <p>Retrouvez vos rapports d'impression</p>
 
-          {activeTab === 'documents' && (
-            <>
-              <h2>📄 Documents & sécurité</h2>
-              {renderField('IBAN', 'iban', infos.iban, isEditing, handleChange)}
-              {renderField('Pièce d’identité', 'identite', infos.identite, isEditing, handleChange)}
-              {renderField('Justificatif d’activité', 'justificatif', infos.justificatif, isEditing, handleChange)}
+                    <select className="form-input" value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)}>
+                      <option value="all">Toute l'année</option>
+                      {moisDispo.map(({ label, value }) => (
+                        <option key={value} value={value}>{label}</option>
+                      ))}
+                    </select>
 
-              {renderButtons(isEditing, setIsEditing, handleSave)}
-            </>
-          )}
 
+                    <Button
+                      variant="primary"
+                      className="mt-3"
+                      onClick={() => generateImpressionReport(infosEntreprise, commandesLivrees, selectedPeriod)}
+                    >
+                      📥 Télécharger rapport d'impression
+                    </Button>
+                  </>
+                )}
+
+              </div>
+            </div>
           </div>
-            </div>
-            </div>
         </Col>
       </Row>
     </Container>
