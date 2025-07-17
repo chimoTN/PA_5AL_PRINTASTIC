@@ -1,553 +1,260 @@
-// src/Pages/CommandesClient.tsx
-import React, { useState, useEffect } from 'react';
-import { Badge, Card, Container, ListGroup, Alert, Spinner } from 'react-bootstrap';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { commandeService } from '../Services/commande.service';
+// CommandeClient.tsx – Adaptation pour modèle 3D
+import { useState, useEffect } from 'react';
+import { Button, Container, Row, Col, Form, Alert, Card } from 'react-bootstrap';
+import { useStripe, useElements, Elements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import { CardNumberElement, CardExpiryElement, CardCvcElement } from "@stripe/react-stripe-js";
+import { paiementService } from '../services/paiementService';
 import { useAuth } from '../hooks/useAuth';
-import FacturePDFGenerator from '../utilis/pdf/FacturePDFGenerator';
+import { toast } from 'sonner';
+import { useNavigate, useLocation } from 'react-router-dom';
 
-const statutColors: Record<string, string> = {
-  'en_attente': 'warning',
-  'en_cours': 'info',
-  'impression': 'primary',
-  'expedie': 'primary',
-  'termine': 'success',
-  'annule': 'danger',
-  // ✅ Conserve vos anciens statuts pour compatibilité
-  'en attente': 'warning',
-  'en cours': 'info',
-  'expédié': 'primary',
-  'livré': 'secondary',
-  'arrivée': 'success',
-  'annulé': 'danger'
-};
+const stripePromise = loadStripe('pk_test_51RbQFLIPwrA3cz1VnsMIcmzz0oxAzJ78wR0Qh18WLVdfXDTTNeYaFS87PFVSRyo8lTvyxgs0vOyqQuWzgdRdehhS00W1CoJzoq');
 
-// ✅ Interface pour les données de commande
-interface CommandeData {
+interface Modele3D {
   id: number;
-  reference: string;
-  prixTotal: string | number;
-  dateCreation?: string;
-  statut?: string;
-  nom?: string;
-  prenom?: string;
-  email?: string;
-  telephone?: string;
-  adresse?: string;
-  detailCommandes: Array<{
-    id: number;
-    statut: string;
-    quantite: number;
-    prixUnitaire: string | number;
-    reference?: string;
-    produit?: {
-      nom: string;
-    } | null;
-    modele3DClient?: {
-      nom: string;
-      description?: string;
-      fichier3D?: {
-        nomFichier: string;
-        tailleFichier: number;
-      };
-      materiau?: {
-        nom: string;
-        couleur?: string;
-      };
-    } | null;
-  }>;
-  paiements?: Array<{
-    id: number;
-    montant: string | number;
-    methodePaiement: string;
-    dateCreation: string;
-  }>;
+  nom: string;
+  prix: number;
+  description?: string;
+  // autres propriétés selon votre modèle
 }
 
-// ✅ Composant Button personnalisé pour éviter l'erreur union type
-const CustomButton: React.FC<{
-  variant?: 'primary' | 'secondary' | 'success' | 'danger' | 'warning' | 'info' | 'light' | 'dark' | 'outline-primary' | 'outline-secondary' | 'outline-success' | 'outline-danger' | 'outline-warning' | 'outline-info' | 'outline-light' | 'outline-dark';
-  size?: 'sm' | 'lg';
-  className?: string;
-  disabled?: boolean;
-  onClick?: () => void;
-  children: React.ReactNode;
-  type?: 'button' | 'submit' | 'reset';
-}> = ({ variant = 'primary', size, className = '', disabled = false, onClick, children, type = 'button' }) => {
-  const baseClasses = 'btn';
-  const variantClass = `btn-${variant}`;
-  const sizeClass = size ? `btn-${size}` : '';
-  const classes = `${baseClasses} ${variantClass} ${sizeClass} ${className}`.trim();
-
-  return (
-    <button
-      type={type}
-      className={classes}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-};
-
-const CommandesClient = () => {
-  const [commandes, setCommandes] = useState<CommandeData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [expandedCommande, setExpandedCommande] = useState<number | null>(null);
-  
+const CommandeForm = () => {
   const { user } = useAuth();
-  const location = useLocation();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 🎯 Récupérer les données du modèle 3D depuis la navigation
+  const modele3D: Modele3D = location.state?.modele3D || null;
 
-  // ✅ Gestion des messages de notification
-  const [message, setMessage] = useState<{
-    text: string;
-    type: 'success' | 'danger' | 'warning' | 'info';
-  } | null>(null);
+  const [address, setAddress] = useState({ 
+    fullAddress: '', 
+    city: '', 
+    zip: '', 
+    country: 'France' 
+  });
+  const [validationError, setValidationError] = useState('');
+  const [isCardComplete, setIsCardComplete] = useState(false);
+  const [isAddressValid, setIsAddressValid] = useState(false);
+  const [cardNumberComplete, setCardNumberComplete] = useState(false);
+  const [cardExpiryComplete, setCardExpiryComplete] = useState(false);
+  const [cardCvcComplete, setCardCvcComplete] = useState(false);
 
+  // 🚨 Redirection si pas de modèle
   useEffect(() => {
-    // ✅ Récupérer le message depuis la navigation
-    if (location.state?.message) {
-      setMessage({
-        text: location.state.message,
-        type: location.state.type === 'success' ? 'success' : 'info'
-      });
-      
-      // Nettoyer le state
-      navigate(location.pathname, { replace: true });
-      
-      // Masquer le message après 5 secondes
-      setTimeout(() => {
-        setMessage(null);
-      }, 5000);
+    if (!modele3D) {
+      toast.error('Aucun modèle sélectionné');
+      navigate('/dashboard/client');
     }
-  }, [location.state, navigate, location.pathname]);
+  }, [modele3D, navigate]);
 
-  useEffect(() => {
-    // ✅ CORRECTION: Vérification que user.id existe
-    if (!user?.id) {
-      setLoading(false);
+  const validateAddress = async () => {
+    try {
+      const data = await paiementService.verifierAdresse(`${address.fullAddress} ${address.city} ${address.zip}`);
+      const match = data?.features?.[0];
+      if (!match) throw new Error("Adresse invalide.");
+      
+      setAddress({
+        ...address,
+        fullAddress: match.properties.name,
+        city: match.properties.city,
+        zip: match.properties.postcode,
+      });
+      setIsAddressValid(true);
+      setValidationError('');
+    } catch (e) {
+      setValidationError('Adresse introuvable.');
+      setIsAddressValid(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!modele3D) {
+      toast.error('Erreur: modèle non trouvé');
       return;
     }
 
-    // ✅ CORRECTION: Gestion de la réponse avec typage approprié
-    commandeService.getMesCommandes()
-      .then((response) => {
-        // ✅ Vérifier si c'est une réponse API avec wrapper ou directement les données
-        if (Array.isArray(response)) {
-          // Réponse directe (array)
-          setCommandes(response);
-        } else if (response && typeof response === 'object') {
-          // Réponse avec wrapper
-          const commandeResponse = response as any;
-          if (commandeResponse.success && commandeResponse.data) {
-            setCommandes(commandeResponse.data);
-          } else if (commandeResponse.commandes) {
-            setCommandes(commandeResponse.commandes);
-          } else {
-            // Si la réponse est un objet mais pas dans le format attendu
-            setCommandes([]);
-          }
-        } else {
-          setCommandes([]);
-        }
-      })
-      .catch((err) => {
-        console.error('Erreur récupération commandes :', err);
-        setMessage({
-          text: 'Erreur lors du chargement des commandes',
-          type: 'danger'
+    try {
+      // 🎯 Adapter le payload pour un modèle 3D unique
+      const response = await paiementService.enregistrerPaiement({
+        prenom: user?.prenom || 'Client',
+        nom: user?.nom || 'Anonyme',
+        email: user?.email || 'client@example.com',
+        telephone: user?.telephone || '01',
+        adresse: `${address.fullAddress}, ${address.city} ${address.zip}`,
+        prixTotal: modele3D.prix,
+        stripePaymentId: new Date().getTime().toString(), // ID temporaire
+        
+        // 🎯 ADAPTATION: Un seul "produit" = le modèle 3D
+        produits: [{
+          id: modele3D.id,
+          name: modele3D.nom,
+          quantity: 1, // Toujours 1 pour un modèle 3D
+          price: modele3D.prix
+        }],
+        utilisateurId: user?.id || 1,
+        
+        // 🎯 NOUVEAU: Identifier que c'est un modèle 3D
+        typeCommande: 'modele3D',
+        modele3DId: modele3D.id
+      });
+
+      if (response.status === 201) {
+        // Son de succès
+        const audio = new Audio('/succes_payment.wav');
+        audio.play();
+
+        toast.success('Commande de modèle 3D validée ! Redirection...', {
+          duration: 3000,
+          position: 'top-center'
         });
-        setCommandes([]);
-      })
-      .finally(() => setLoading(false));
-  }, [user?.id]);
 
-  const annulerProduit = async (idDetailCommande: number) => {
-    try {
-      setActionLoading(`annuler-${idDetailCommande}`);
-      
-      await commandeService.changerStatutDetailCommande(idDetailCommande, 'annulé');
-      
-      setCommandes(prev =>
-        prev.map(c => ({
-          ...c,
-          detailCommandes: c.detailCommandes.map((d: any) =>
-            d.id === idDetailCommande ? { ...d, statut: 'annulé' } : d
-          )
-        }))
-      );
-      
-      setMessage({
-        text: 'Produit annulé avec succès',
-        type: 'success'
+        setTimeout(() => {
+          navigate('/dashboard/client/mes-commandes'); // ou autre page
+        }, 3000);
+      }
+
+    } catch (err) {
+      console.error('Erreur commande modèle 3D:', err);
+      toast.error('Une erreur est survenue lors de la commande.', {
+        duration: 3000,
+        position: 'top-center'
       });
-      setTimeout(() => setMessage(null), 3000);
-    } catch (error: any) {
-      setMessage({
-        text: error.message || 'Erreur lors de l\'annulation',
-        type: 'danger'
-      });
-      setTimeout(() => setMessage(null), 5000);
-    } finally {
-      setActionLoading(null);
     }
   };
 
-  const signalerProduit = (index: number) => {
-    setMessage({
-      text: `Produit #${index + 1} signalé ! (fonction à implémenter)`,
-      type: 'info'
-    });
-    setTimeout(() => setMessage(null), 3000);
-  };
+  useEffect(() => {
+    setIsCardComplete(cardNumberComplete && cardExpiryComplete && cardCvcComplete);
+  }, [cardNumberComplete, cardExpiryComplete, cardCvcComplete]);
 
-  const toggleCommandeDetails = (commandeId: number) => {
-    setExpandedCommande(expandedCommande === commandeId ? null : commandeId);
-  };
-
-  const formatDate = (dateString: string): string => {
-    try {
-      const date = new Date(dateString);
-      return date.toLocaleDateString('fr-FR', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      return dateString;
-    }
-  };
-
-  const formatPrice = (price: string | number): string => {
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return isNaN(numPrice) ? '0,00' : numPrice.toFixed(2);
-  };
-
-  const navigateToProducts = () => {
-    navigate('/mes-fichiers');
-  };
-
-  if (loading) {
-    return (
-      <Container className="mt-4">
-        <div className="text-center">
-          <Spinner animation="border" variant="primary" role="status">
-            <span className="visually-hidden">Chargement...</span>
-          </Spinner>
-          <p className="mt-2">Chargement de vos commandes...</p>
-        </div>
-      </Container>
-    );
-  }
-
-  // ✅ Gestion du cas où l'utilisateur n'est pas connecté
-  if (!user?.id) {
-    return (
-      <Container className="mt-4">
-        <Alert variant="warning">
-          <i className="fas fa-exclamation-triangle me-2"></i>
-          Vous devez être connecté pour voir vos commandes.
-        </Alert>
-      </Container>
-    );
-  }
-
-  if (!commandes.length) {
-    return (
-      <Container className="mt-4">
-        <h2 className="mb-4 fw-bold">Mes Commandes</h2>
-        <Alert variant="info">
-          <i className="fas fa-info-circle me-2"></i>
-          Aucune commande trouvée. 
-          <span 
-            className="text-primary text-decoration-underline ms-2"
-            style={{ cursor: 'pointer' }}
-            onClick={navigateToProducts}
-          >
-            Découvrir nos produits
-          </span>
-        </Alert>
-      </Container>
-    );
-  }
+  if (!modele3D) return null;
 
   return (
-    <Container className="mt-4">
-      <h2 className="mb-4 fw-bold">
-        <i className="fas fa-shopping-bag me-2"></i>
-        Mes Commandes
-      </h2>
-
-      {/* ✅ Message de notification */}
-      {message && (
-        <Alert 
-          variant={message.type} 
-          dismissible 
-          onClose={() => setMessage(null)}
-          className="mb-4"
-        >
-          <i className={`fas ${message.type === 'success' ? 'fa-check-circle' : 
-                              message.type === 'danger' ? 'fa-exclamation-triangle' : 
-                              'fa-info-circle'} me-2`}></i>
-          {message.text}
-        </Alert>
-      )}
-
-      {commandes.map((commande) => (
-        <Card
-          key={commande.id}
-          className="mb-4 shadow-sm"
-          style={{ backgroundColor: '#f9f9f9' }}
-        >
-          <Card.Header className="d-flex justify-content-between align-items-center">
-            <div>
-              <strong>Commande #{commande.reference}</strong> — {formatPrice(commande.prixTotal)} €
-              {commande.dateCreation && (
-                <div className="text-muted small mt-1">
-                  <i className="fas fa-calendar me-1"></i>
-                  Commandé le {formatDate(commande.dateCreation)}
-                </div>
+    <Container style={{ paddingTop: '70px', paddingBottom: '50px' }}>
+      <h2 className="mb-4">🎨 Commande Modèle 3D</h2>
+      
+      <Row className="mb-4">
+        {/* 🎯 SECTION MODÈLE 3D */}
+        <Col md={4}>
+          <Card body>
+            <h4>Modèle sélectionné</h4>
+            <div className="mb-3">
+              <strong>{modele3D.nom}</strong>
+              {modele3D.description && (
+                <p className="text-muted small mt-1">{modele3D.description}</p>
               )}
             </div>
-            <div className="d-flex align-items-center gap-2">
-              <Badge bg={statutColors[commande.statut || 'en_attente'] || 'secondary'} className="fw-bold text-uppercase">
-                {commande.statut?.replace('_', ' ') || 'En attente'}
-              </Badge>
-              <CustomButton 
-                variant="outline-primary" 
-                size="sm"
-                onClick={() => toggleCommandeDetails(commande.id)}
-              >
-                <i className={`fas fa-chevron-${expandedCommande === commande.id ? 'up' : 'down'}`}></i>
-              </CustomButton>
+            <div className="mb-2">
+              <span className="badge bg-info">Modèle 3D unique</span>
             </div>
-          </Card.Header>
+            <hr />
+            <strong>Total : {modele3D.prix.toFixed(2)} €</strong>
+          </Card>
+        </Col>
 
-          <Card.Body>
-            <ListGroup>
-              {(commande.detailCommandes || []).map((detail: any, index: number) => (
-                <ListGroup.Item key={detail.id} className="p-3">
-                  <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
-                    <div className="fw-semibold text-dark mb-2 mb-md-0">
-                      {/* ✅ Gestion des modèles 3D ET des produits */}
-                      {detail.modele3DClient ? (
-                        <div>
-                          <i className="fas fa-cube text-primary me-2"></i>
-                          <strong>{detail.modele3DClient.nom}</strong>
-                          <div className="text-muted small mt-1">
-                            Modèle 3D personnalisé
-                            {detail.modele3DClient.materiau && (
-                              <span className="ms-2">
-                                • {detail.modele3DClient.materiau.nom}
-                                {detail.modele3DClient.materiau.couleur && (
-                                  <span className="text-info"> ({detail.modele3DClient.materiau.couleur})</span>
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div>
-                          <i className="fas fa-box text-success me-2"></i>
-                          <strong>{detail.produit?.nom || 'Produit inconnu'}</strong>
-                        </div>
-                      )}
-                      
-                      <div className="text-muted small mt-1">
-                        {detail.reference && (
-                          <span className="me-3">
-                            <i className="fas fa-hashtag me-1"></i>
-                            {detail.reference}
-                          </span>
-                        )}
-                        <span className="me-3">
-                          <i className="fas fa-sort-numeric-up me-1"></i>
-                          Quantité: {detail.quantite}
-                        </span>
-                        <span>
-                          <i className="fas fa-euro-sign me-1"></i>
-                          {formatPrice(detail.prixUnitaire)} € x {detail.quantite} = {formatPrice(parseFloat(detail.prixUnitaire.toString()) * detail.quantite)} €
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-2 mt-md-0 text-md-end">
-                      <Badge bg={statutColors[detail.statut] || 'secondary'} className="me-3 fw-bold text-uppercase">
-                        {detail.statut?.replace('_', ' ') || 'Statut inconnu'}
-                      </Badge>
-                      
-                      {(detail.statut === 'en_attente' || detail.statut === 'en attente') && (
-                        <CustomButton 
-                          variant="danger" 
-                          size="sm"
-                          className="me-2"
-                          disabled={actionLoading === `annuler-${detail.id}`}
-                          onClick={() => annulerProduit(detail.id)}
-                        >
-                          {actionLoading === `annuler-${detail.id}` ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-1" role="status"></span>
-                              Annulation...
-                            </>
-                          ) : (
-                            <>
-                              <i className="fas fa-times me-1"></i>
-                              Annuler
-                            </>
-                          )}
-                        </CustomButton>
-                      )}
-                      
-                      {(detail.statut === 'termine' || detail.statut === 'arrivée') && (
-                        <CustomButton 
-                          variant="warning" 
-                          size="sm"
-                          onClick={() => signalerProduit(index)}
-                        >
-                          <i className="fas fa-exclamation-triangle me-1"></i>
-                          Signaler un problème
-                        </CustomButton>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* ✅ Détails étendus */}
-                  {expandedCommande === commande.id && detail.modele3DClient && (
-                    <div className="mt-3 pt-3 border-top">
-                      <h6 className="text-muted mb-2">
-                        <i className="fas fa-info-circle me-2"></i>
-                        Détails du modèle 3D
-                      </h6>
-                      <div className="row">
-                        {detail.modele3DClient.description && (
-                          <div className="col-md-6 mb-2">
-                            <strong>Description:</strong>
-                            <div className="text-muted small">{detail.modele3DClient.description}</div>
-                          </div>
-                        )}
-                        {detail.modele3DClient.fichier3D && (
-                          <div className="col-md-6 mb-2">
-                            <strong>Fichier:</strong>
-                            <div className="text-muted small">
-                              {detail.modele3DClient.fichier3D.nomFichier}
-                              {detail.modele3DClient.fichier3D.tailleFichier && (
-                                <span className="ms-2">
-                                  ({(detail.modele3DClient.fichier3D.tailleFichier / 1024 / 1024).toFixed(2)} MB)
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </ListGroup.Item>
-              ))}
-            </ListGroup>
+        {/* 🎯 SECTION ADRESSE (identique) */}
+        <Col md={4}>
+          <Card body>
+            <h4>Adresse de livraison</h4>
+            <Form>
+              <Form.Group className="mb-2">
+                <Form.Label>Adresse complète</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={address.fullAddress} 
+                  onChange={(e) => setAddress({ ...address, fullAddress: e.target.value })} 
+                  onBlur={validateAddress}
+                  placeholder="123 rue de la Paix"
+                />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>Ville</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={address.city} 
+                  onChange={(e) => setAddress({ ...address, city: e.target.value })} 
+                  onBlur={validateAddress}
+                  placeholder="Paris"
+                />
+              </Form.Group>
+              <Form.Group className="mb-2">
+                <Form.Label>Code postal</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={address.zip} 
+                  onChange={(e) => setAddress({ ...address, zip: e.target.value })} 
+                  onBlur={validateAddress}
+                  placeholder="75001"
+                />
+              </Form.Group>
+              {isAddressValid && (
+                <Alert variant="success" className="mt-2">
+                  ✅ Adresse validée
+                </Alert>
+              )}
+            </Form>
+          </Card>
+        </Col>
 
-            {/* ✅ Informations de livraison étendues */}
-            {expandedCommande === commande.id && (
-              <div className="mt-3 pt-3 border-top">
-                <div className="row">
-                  <div className="col-md-6">
-                    <h6 className="text-muted mb-2">
-                      <i className="fas fa-user me-2"></i>
-                      Informations de livraison
-                    </h6>
-                    <div className="text-muted small">
-                      <div><strong>Nom:</strong> {commande.prenom} {commande.nom}</div>
-                      <div><strong>Email:</strong> {commande.email}</div>
-                      <div><strong>Téléphone:</strong> {commande.telephone}</div>
-                      <div><strong>Adresse:</strong> {commande.adresse}</div>
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <h6 className="text-muted mb-2">
-                      <i className="fas fa-credit-card me-2"></i>
-                      Informations de paiement
-                    </h6>
-                    {commande.paiements && commande.paiements.length > 0 ? (
-                      commande.paiements.map((paiement: any, idx: number) => (
-                        <div key={idx} className="text-muted small">
-                          <div><strong>Montant:</strong> {formatPrice(paiement.montant)} €</div>
-                          <div><strong>Méthode:</strong> {paiement.methodePaiement}</div>
-                          <div><strong>Date:</strong> {formatDate(paiement.dateCreation)}</div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-muted small">Aucun paiement enregistré</div>
-                    )}
-                  </div>
+        {/* 🎯 SECTION PAIEMENT (identique) */}
+        <Col md={4}>
+          <Card body>
+            <h4>Paiement sécurisé</h4>
+            <Form onSubmit={handleSubmit}>
+              <Form.Group className="mb-3">
+                <Form.Label>Numéro de carte</Form.Label>
+                <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+                  <CardNumberElement
+                    onChange={e => setCardNumberComplete(e.complete)}
+                  />
                 </div>
-              </div>
-            )}
-
-            <div className="text-end mt-3">
-              <CustomButton 
-                variant="dark" 
-                size="sm"
-                onClick={() => toggleCommandeDetails(commande.id)}
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Date d'expiration</Form.Label>
+                <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+                  <CardExpiryElement
+                    onChange={e => setCardExpiryComplete(e.complete)}
+                  />
+                </div>
+              </Form.Group>
+              
+              <Form.Group className="mb-3">
+                <Form.Label>Code CVC</Form.Label>
+                <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+                  <CardCvcElement
+                    onChange={e => setCardCvcComplete(e.complete)}
+                  />
+                </div>
+              </Form.Group>
+              
+              {validationError && (
+                <Alert variant="danger">{validationError}</Alert>
+              )}
+              
+              <Button 
+                type="submit"
+                disabled={!isCardComplete || !isAddressValid}
+                variant="primary"
+                className="w-100"
+                size="lg"
               >
-                <i className={`fas fa-${expandedCommande === commande.id ? 'eye-slash' : 'eye'} me-1`}></i>
-                {expandedCommande === commande.id ? 'Masquer les détails' : 'Voir les détails'}
-              </CustomButton>
-            </div>
-          </Card.Body>
-        </Card>
-      ))}
-
-      {/* Modal de réclamation */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Signaler un problème</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {/* Sélection du libellé de réclamation */}
-          <Form.Group className="mb-3">
-            <Form.Label>Libellé de la réclamation</Form.Label>
-            <Form.Select
-              value={selectedLibelle}
-              onChange={(e) => setSelectedLibelle(e.target.value)}
-            >
-              <option value="">-- Choisir une raison --</option>
-              <option value="non livré">Non livré</option>
-              <option value="défectueux">Défectueux</option>
-              <option value="pas le bon produit">Pas le bon produit</option>
-              <option value="cassé">Cassé</option>
-            </Form.Select>
-          </Form.Group>
-
-          {/* Description libre */}
-          <Form.Group>
-            <Form.Label>Description détaillée</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Annuler
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSignalSubmit}
-            disabled={!reason.trim()}
-          >
-            Faire une réclamation
-          </Button>
-        </Modal.Footer>
-      </Modal>
+                🎨 Commander le modèle 3D ({modele3D.prix.toFixed(2)} €)
+              </Button>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
     </Container>
   );
 };
 
-export default CommandesClient;
+const CommandeClient = () => (
+  <Elements stripe={stripePromise}>
+    <CommandeForm />
+  </Elements>
+);
+
+export default CommandeClient;

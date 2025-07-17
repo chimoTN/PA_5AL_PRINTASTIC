@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
-import { Modal, Form, Button as BootstrapButton, Row, Col, Alert } from 'react-bootstrap';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import React, { useState, useEffect } from 'react';
+import { Modal, Form, Button as BootstrapButton, Row, Col, Alert, Card } from 'react-bootstrap';
+import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { commandeService } from '../services/commande.service';
+import { paiementService } from '../services/paiementService';
 import { loadStripe } from '@stripe/stripe-js';
 import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
 import { Modele3DClient } from '../services';
+import { useAuth } from '../hooks/useAuth';
+import { toast } from 'sonner';
 
 const stripePromise = loadStripe(REACT_APP_STRIPE_PUBLISHABLE_KEY);
-
-
 
 interface CommandeModalProps {
   show: boolean;
@@ -17,207 +18,209 @@ interface CommandeModalProps {
   onCommandeSuccess: () => void;
 }
 
-// ✅ Options pour CardElement
-const cardElementOptions = {
-  style: {
-    base: {
-      fontSize: '16px',
-      color: '#424770',
-      fontFamily: 'Arial, sans-serif',
-      '::placeholder': {
-        color: '#aab7c4',
-      },
-    },
-    invalid: {
-      color: '#9e2146',
-    },
-  },
-};
-
-// ✅ Composant de formulaire avec Stripe
+// ✅ Composant de formulaire avec features checkout
 const CommandeForm: React.FC<{
   file: Modele3DClient;
   onSuccess: () => void;
   onError: (error: string) => void;
-}> = ({ file, onSuccess, onError }) => {
+  onHide: () => void;
+}> = ({ file, onSuccess, onError, onHide }) => {
   const stripe = useStripe();
   const elements = useElements();
+  const { user } = useAuth();
   
-  const [formData, setFormData] = useState({
-    telephone: '',
-    adresse: '',
-    ville: '',
-    codePostal: '',
-    quantite: 1,
-    instructions: ''
+  // ✅ États pour la validation des cartes (comme checkout)
+  const [cardNumberComplete, setCardNumberComplete] = useState(false);
+  const [cardExpiryComplete, setCardExpiryComplete] = useState(false);
+  const [cardCvcComplete, setCardCvcComplete] = useState(false);
+  const [isCardComplete, setIsCardComplete] = useState(false);
+  
+  // ✅ États pour l'adresse avec validation (comme checkout)
+  const [address, setAddress] = useState({ 
+    fullAddress: '', 
+    city: '', 
+    zip: '', 
+    country: 'France' 
   });
+  const [isAddressValid, setIsAddressValid] = useState(false);
+  const [validationError, setValidationError] = useState('');
   
+  // ✅ États pour la commande
+  const [quantite, setQuantite] = useState(1);
+  const [telephone, setTelephone] = useState('');
+  const [instructions, setInstructions] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // ✅ Validation du formulaire
-  const validateForm = (): boolean => {
-    const newErrors: {[key: string]: string} = {};
-    
-    if (!formData.telephone.trim()) {
-      newErrors.telephone = 'Le téléphone est requis';
-    } else if (!/^[0-9+\-\s()]{10,}$/.test(formData.telephone)) {
-      newErrors.telephone = 'Format de téléphone invalide';
-    }
-    
-    if (!formData.adresse.trim()) {
-      newErrors.adresse = 'L\'adresse est requise';
-    }
-    
-    if (!formData.ville.trim()) {
-      newErrors.ville = 'La ville est requise';
-    }
-    
-    if (!formData.codePostal.trim()) {
-      newErrors.codePostal = 'Le code postal est requis';
-    } else if (!/^[0-9]{5}$/.test(formData.codePostal)) {
-      newErrors.codePostal = 'Code postal invalide (5 chiffres)';
-    }
-    
-    if (formData.quantite < 1 || formData.quantite > 100) {
-      newErrors.quantite = 'Quantité invalide (1-100)';
-    }
+  // ✅ Calculs de prix
+  const prixUnitaire = file?.prix || 0;
+  const prixTotal = prixUnitaire * quantite;
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // ✅ Gestion des changements
-  const handleChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Effacer l'erreur du champ modifié
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  // ✅ Validation de l'adresse (comme checkout)
+  const validateAddress = async () => {
+    try {
+      const data = await paiementService.verifierAdresse(
+        `${address.fullAddress} ${address.city} ${address.zip}`
+      );
+      const match = data?.features?.[0];
+      if (!match) throw new Error("Adresse invalide.");
+      
+      setAddress({
+        ...address,
+        fullAddress: match.properties.name,
+        city: match.properties.city,
+        zip: match.properties.postcode,
+      });
+      setIsAddressValid(true);
+      setValidationError('');
+    } catch (e) {
+      setValidationError('Adresse introuvable.');
+      setIsAddressValid(false);
     }
   };
 
-  // ✅ Calcul du prix total
-  const prixUnitaire = parseFloat(file.prix?.toString() || '0');
-  const prixTotal = prixUnitaire * formData.quantite;
+  // ✅ Validation du téléphone
+  const validateTelephone = (phone: string): boolean => {
+    return /^(?:(?:\+33|0)[1-9](?:[0-9]{8}))$/.test(phone.replace(/[\s.-]/g, ''));
+  };
 
-  // ✅ Soumission du formulaire
+  // ✅ Gestion de la soumission (inspirée de checkout)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!validateForm()) return;
-    
-    if (!stripe || !elements) {
-      onError('Stripe n\'est pas prêt');
+    // Validation finale
+    if (!isCardComplete || !isAddressValid || !telephone || !validateTelephone(telephone)) {
+      setValidationError('Veuillez compléter tous les champs obligatoires.');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      // ✅ Créer l'intention de paiement
-      const paymentResponse = await commandeService.createPaymentIntent(file.id);
+      // ✅ 1. Créer le PaymentIntent
+      const { clientSecret } = await paiementService.creerPaymentIntent(
+        Math.round(prixTotal * 100)
+      );
 
-      if (!paymentResponse.clientSecret) {
-        throw new Error('Erreur lors de la création du paiement');
-      }
-
-      // ✅ Confirmer le paiement
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
+      // ✅ 2. Confirmer le paiement avec Stripe
+      const cardNumberElement = elements?.getElement(CardNumberElement);
+      if (!cardNumberElement) {
         throw new Error('Élément de carte non trouvé');
       }
 
-      const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment(
-        paymentResponse.clientSecret,
-        {
-          payment_method: {
-            card: cardElement,
-            billing_details: {
-              name: `${formData.telephone}`,
-              phone: formData.telephone,
-              address: {
-                line1: formData.adresse,
-                city: formData.ville,
-                postal_code: formData.codePostal,
-                country: 'FR'
-              }
+      const result = await stripe?.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardNumberElement,
+          billing_details: {
+            name: `${user?.prenom || ''} ${user?.nom || ''}`,
+            email: user?.email || '',
+            phone: telephone,
+            address: {
+              line1: address.fullAddress,
+              city: address.city,
+              postal_code: address.zip,
+              country: 'FR'
             }
           }
         }
-      );
-
-      if (paymentError) {
-        throw new Error(paymentError.message || 'Erreur lors du paiement');
-      }
-
-      if (paymentIntent.status !== 'succeeded') {
-        throw new Error('Le paiement n\'a pas abouti');
-      }
-
-      // ✅ Créer la commande
-      const commandeResponse = await commandeService.createCommandeModele3D({
-        modele3dClientId: file.id,
-        telephone: formData.telephone,
-        adresse: `${formData.adresse}, ${formData.ville} ${formData.codePostal}`,
-        stripePaymentId: paymentIntent.id
       });
 
-      if (commandeResponse.success) {
-        onSuccess();
-      } else {
-        throw new Error(commandeResponse.message || 'Erreur lors de la création de la commande');
+      if (result?.error) {
+        throw new Error(result.error.message || "Erreur de paiement.");
+      }
+
+      // ✅ 3. Enregistrer la commande (style checkout)
+      if (result?.paymentIntent?.status === 'succeeded') {
+        const response = await paiementService.enregistrerPaiement({
+          prenom: user?.prenom || 'Client',
+          nom: user?.nom || 'Anonyme',
+          email: user?.email || 'client@example.com',
+          telephone: telephone,
+          adresse: `${address.fullAddress}, ${address.city} ${address.zip}`,
+          prixTotal: prixTotal,
+          stripePaymentId: result.paymentIntent.id,
+          produits: [{
+            id: file.id,
+            nom: file.nom,
+            quantity: quantite,
+            price: prixUnitaire
+          }],
+          utilisateurId: user?.id || 0,
+          typeCommande: 'modele3D', // ✅ Distinction du type
+          instructions: instructions
+        });
+
+        if (response.status === 201) {
+          // ✅ Son de succès (comme checkout)
+          const audio = new Audio('/succes_payment.wav');
+          audio.play().catch(() => {}); // Ignore les erreurs audio
+
+          // ✅ Toast de succès
+          toast.success(
+            `🎨 Commande validée ! Modèle "${file.nom}" commandé avec succès.`,
+            {
+              description: `Quantité: ${quantite} | Total: ${prixTotal.toFixed(2)} €`,
+              duration: 4000,
+              position: 'top-center'
+            }
+          );
+
+          onSuccess();
+        } else {
+          throw new Error('Erreur lors de la création de la commande');
+        }
       }
 
     } catch (error: any) {
       console.error('❌ Erreur lors de la commande:', error);
       onError(error.message || 'Erreur lors du traitement de la commande');
+      
+      toast.error('Une erreur est survenue lors du paiement.', {
+        duration: 3000,
+        position: 'top-center'
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // ✅ Effet pour la validation des cartes (comme checkout)
+  useEffect(() => {
+    setIsCardComplete(cardNumberComplete && cardExpiryComplete && cardCvcComplete);
+  }, [cardNumberComplete, cardExpiryComplete, cardCvcComplete]);
+
   return (
     <Form onSubmit={handleSubmit}>
-      {/* ✅ Informations du produit */}
-      <div className="mb-4 p-3 bg-light rounded">
-        <h6 className="mb-2">
-          <i className="fas fa-cube me-2"></i>
-          {file.nom}
-        </h6>
-        <Row>
-          <Col md={6}>
-            <small className="text-muted">Prix unitaire: </small>
-            <strong>{prixUnitaire.toFixed(2)} €</strong>
-          </Col>
-          <Col md={6}>
-            <small className="text-muted">Total: </small>
-            <strong className="text-primary">{prixTotal.toFixed(2)} €</strong>
-          </Col>
-        </Row>
-      </div>
-
-      {/* ✅ Quantité */}
-      <Row className="mb-3">
-        <Col md={6}>
-          <Form.Group>
-            <Form.Label>
-              <i className="fas fa-calculator me-2"></i>
-              Quantité
-            </Form.Label>
-            <Form.Control
-              type="number"
-              min="1"
-              max="100"
-              value={formData.quantite}
-              onChange={(e) => handleChange('quantite', parseInt(e.target.value) || 1)}
-              isInvalid={!!errors.quantite}
-            />
-            <Form.Control.Feedback type="invalid">
-              {errors.quantite}
-            </Form.Control.Feedback>
-          </Form.Group>
-        </Col>
-      </Row>
+      {/* ✅ Résumé de la commande */}
+      <Card className="mb-4">
+        <Card.Body>
+          <h6>
+            <i className="fas fa-cube me-2"></i>
+            {file.nom}
+          </h6>
+          <Row>
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Quantité</Form.Label>
+                <Form.Control
+                  type="number"
+                  min="1"
+                  max="100"
+                  value={quantite}
+                  onChange={(e) => setQuantite(parseInt(e.target.value) || 1)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={4}>
+              <small className="text-muted">Prix unitaire: </small>
+              <strong>{prixUnitaire.toFixed(2)} €</strong>
+            </Col>
+            <Col md={4}>
+              <small className="text-muted">Total: </small>
+              <strong className="text-primary">{prixTotal.toFixed(2)} €</strong>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
 
       {/* ✅ Informations de contact */}
       <Row className="mb-3">
@@ -229,166 +232,171 @@ const CommandeForm: React.FC<{
             </Form.Label>
             <Form.Control
               type="tel"
-              value={formData.telephone}
-              onChange={(e) => handleChange('telephone', e.target.value)}
+              value={telephone}
+              onChange={(e) => setTelephone(e.target.value)}
               placeholder="06 12 34 56 78"
-              isInvalid={!!errors.telephone}
+              isInvalid={!!(telephone && !validateTelephone(telephone))}
             />
             <Form.Control.Feedback type="invalid">
-              {errors.telephone}
+              Format: 06 12 34 56 78 ou +33 6 12 34 56 78
             </Form.Control.Feedback>
           </Form.Group>
         </Col>
       </Row>
 
-      {/* ✅ Adresse de livraison */}
-      <Row className="mb-3">
-        <Col md={12}>
-          <Form.Group>
-            <Form.Label>
-              <i className="fas fa-map-marker-alt me-2"></i>
-              Adresse de livraison *
-            </Form.Label>
-            <Form.Control
-              type="text"
-              value={formData.adresse}
-              onChange={(e) => handleChange('adresse', e.target.value)}
-              placeholder="123 Rue de la Paix"
-              isInvalid={!!errors.adresse}
-            />
-            <Form.Control.Feedback type="invalid">
-              {errors.adresse}
-            </Form.Control.Feedback>
-          </Form.Group>
-        </Col>
-      </Row>
-
+      {/* ✅ Adresse avec validation (comme checkout) */}
       <Row className="mb-3">
         <Col md={8}>
           <Form.Group>
             <Form.Label>
-              <i className="fas fa-city me-2"></i>
-              Ville *
+              <i className="fas fa-map-marker-alt me-2"></i>
+              Adresse *
             </Form.Label>
             <Form.Control
               type="text"
-              value={formData.ville}
-              onChange={(e) => handleChange('ville', e.target.value)}
-              placeholder="Paris"
-              isInvalid={!!errors.ville}
+              value={address.fullAddress}
+              onChange={(e) => setAddress({ ...address, fullAddress: e.target.value })}
+              onBlur={validateAddress}
+              placeholder="123 Rue de la Paix"
+              isInvalid={!isAddressValid && address.fullAddress.length > 0}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.ville}
-            </Form.Control.Feedback>
           </Form.Group>
         </Col>
         <Col md={4}>
           <Form.Group>
-            <Form.Label>
-              <i className="fas fa-mail-bulk me-2"></i>
-              Code postal *
-            </Form.Label>
+            <Form.Label>Ville *</Form.Label>
             <Form.Control
               type="text"
-              value={formData.codePostal}
-              onChange={(e) => handleChange('codePostal', e.target.value)}
+              value={address.city}
+              onChange={(e) => setAddress({ ...address, city: e.target.value })}
+              onBlur={validateAddress}
+              placeholder="Paris"
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
+      <Row className="mb-3">
+        <Col md={6}>
+          <Form.Group>
+            <Form.Label>Code postal *</Form.Label>
+            <Form.Control
+              type="text"
+              value={address.zip}
+              onChange={(e) => setAddress({ ...address, zip: e.target.value })}
+              onBlur={validateAddress}
               placeholder="75001"
               maxLength={5}
-              isInvalid={!!errors.codePostal}
             />
-            <Form.Control.Feedback type="invalid">
-              {errors.codePostal}
-            </Form.Control.Feedback>
           </Form.Group>
         </Col>
       </Row>
 
-      {/* ✅ Instructions spéciales */}
-      <Row className="mb-3">
-        <Col md={12}>
-          <Form.Group>
-            <Form.Label>
-              <i className="fas fa-comment me-2"></i>
-              Instructions spéciales (optionnel)
-            </Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={formData.instructions}
-              onChange={(e) => handleChange('instructions', e.target.value)}
-              placeholder="Couleur souhaitée, délais particuliers..."
-              maxLength={500}
-            />
-            <Form.Text className="text-muted">
-              {formData.instructions.length}/500 caractères
-            </Form.Text>
-          </Form.Group>
-        </Col>
-      </Row>
+      {/* ✅ Instructions */}
+      <Form.Group className="mb-3">
+        <Form.Label>
+          <i className="fas fa-comment me-2"></i>
+          Instructions spéciales
+        </Form.Label>
+        <Form.Control
+          as="textarea"
+          rows={2}
+          value={instructions}
+          onChange={(e) => setInstructions(e.target.value)}
+          placeholder="Couleur, matériau, délais..."
+          maxLength={500}
+        />
+      </Form.Group>
 
-      {/* ✅ Informations de paiement */}
+      {/* ✅ Paiement (comme checkout) */}
       <div className="mb-4">
         <Form.Label>
           <i className="fas fa-credit-card me-2"></i>
           Informations de paiement
         </Form.Label>
-        <div className="p-3 border rounded bg-white">
-          <CardElement options={cardElementOptions} />
-        </div>
+        
+        <Row className="mb-3">
+          <Col md={12}>
+            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+              <CardNumberElement
+                onChange={e => setCardNumberComplete(e.complete)}
+              />
+            </div>
+          </Col>
+        </Row>
+        
+        <Row className="mb-3">
+          <Col md={6}>
+            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+              <CardExpiryElement
+                onChange={e => setCardExpiryComplete(e.complete)}
+              />
+            </div>
+          </Col>
+          <Col md={6}>
+            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
+              <CardCvcElement
+                onChange={e => setCardCvcComplete(e.complete)}
+              />
+            </div>
+          </Col>
+        </Row>
       </div>
+
+      {/* ✅ Messages d'erreur */}
+      {validationError && (
+        <Alert variant="danger" className="mb-3">
+          <i className="fas fa-exclamation-triangle me-2"></i>
+          {validationError}
+        </Alert>
+      )}
 
       {/* ✅ Boutons */}
       <div className="d-flex justify-content-end gap-2">
         <BootstrapButton 
-            variant="secondary" 
-            onClick={() => window.location.reload()}
-            disabled={isSubmitting}
-            >
-            <i className="fas fa-times me-2"></i>
-            Annuler
-            </BootstrapButton>
+          variant="secondary" 
+          onClick={onHide}
+          disabled={isSubmitting}
+        >
+          <i className="fas fa-times me-2"></i>
+          Annuler
+        </BootstrapButton>
 
-            <BootstrapButton 
-            type="submit" 
-            variant="primary"
-            disabled={isSubmitting || !stripe}
-            >
-            {isSubmitting ? (
-                <>
-                <span className="spinner-border spinner-border-sm me-2" />
-                Traitement...
-                </>
-            ) : (
-                <>
-                <i className="fas fa-shopping-cart me-2"></i>
-                Commander ({prixTotal.toFixed(2)} €)
-                </>
-            )}
-            </BootstrapButton>
-
-
+        <BootstrapButton 
+          type="submit" 
+          variant="primary"
+          disabled={isSubmitting || !stripe || !isCardComplete || !isAddressValid || !telephone}
+        >
+          {isSubmitting ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" />
+              Traitement...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-shopping-cart me-2"></i>
+              Commander ({prixTotal.toFixed(2)} €)
+            </>
+          )}
+        </BootstrapButton>
       </div>
     </Form>
   );
 };
 
-// ✅ Composant modal principal
+// ✅ Composant Modal (inchangé)
 const CommandeModal: React.FC<CommandeModalProps> = ({ 
   show, 
   onHide, 
   file, 
   onCommandeSuccess 
 }) => {
-  const [success, setSuccess] = useState<string>('');
   const [error, setError] = useState<string>('');
 
   const handleSuccess = () => {
-    setSuccess('Commande créée avec succès !');
-    setTimeout(() => {
-      onCommandeSuccess();
-      onHide();
-      setSuccess('');
-    }, 2000);
+    setError('');
+    onCommandeSuccess();
+    onHide();
   };
 
   const handleError = (errorMessage: string) => {
@@ -397,7 +405,6 @@ const CommandeModal: React.FC<CommandeModalProps> = ({
 
   const handleClose = () => {
     setError('');
-    setSuccess('');
     onHide();
   };
 
@@ -417,6 +424,7 @@ const CommandeModal: React.FC<CommandeModalProps> = ({
           Commander un modèle 3D
         </Modal.Title>
       </Modal.Header>
+      
       <Modal.Body>
         {error && (
           <Alert variant="danger" dismissible onClose={() => setError('')}>
@@ -424,23 +432,15 @@ const CommandeModal: React.FC<CommandeModalProps> = ({
             {error}
           </Alert>
         )}
-        
-        {success && (
-          <Alert variant="success">
-            <i className="fas fa-check-circle me-2"></i>
-            {success}
-          </Alert>
-        )}
 
-        {!success && (
-          <Elements stripe={stripePromise}>
-            <CommandeForm 
-              file={file}
-              onSuccess={handleSuccess}
-              onError={handleError}
-            />
-          </Elements>
-        )}
+        <Elements stripe={stripePromise}>
+          <CommandeForm 
+            file={file}
+            onSuccess={handleSuccess}
+            onError={handleError}
+            onHide={handleClose}
+          />
+        </Elements>
       </Modal.Body>
     </Modal>
   );

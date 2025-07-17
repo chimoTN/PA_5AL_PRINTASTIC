@@ -9,7 +9,9 @@ import { paiementService } from '../services/paiementService';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
-const stripePromise = loadStripe('pk_test_51RbQFLIPwrA3cz1VnsMIcmzz0oxAzJ78wR0Qh18WLVdfXDTTNeYaFS87PFVSRyo8lTvyxgs0vOyqQuWzgdRdehhS00W1CoJzoq');
+import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
+
+const stripePromise = loadStripe(REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
 const CheckoutForm = () => {
 
