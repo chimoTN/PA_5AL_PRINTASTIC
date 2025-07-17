@@ -64,9 +64,10 @@ export const useFilesClient = () => {
       // Le paramètre showAllFiles sera géré côté backend ou ignoré pour l'instant
       const response = await filesClientService.getFilesClient();
       
-      if (response.success && response.files) {
-        setFiles(response.files);
-        console.log('✅ Fichiers chargés:', response.files.length);
+      const filesList = response.data || [];
+      if (response.success) {
+        setFiles(filesList);
+        console.log('✅ Fichiers chargés:', filesList.length);
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fichiers');
       }

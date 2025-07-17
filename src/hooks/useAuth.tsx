@@ -26,9 +26,6 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     try {
       console.log('🔄 Refresh auth...');
       
-      // ✅ IMPORTANT : Initialiser le cookie AVANT checkSession
-      authService.initializeSession();
-      
       const ok = await authService.checkSession();
       console.log('📡 Session check result:', ok);
       
