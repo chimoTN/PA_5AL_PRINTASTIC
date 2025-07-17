@@ -22,9 +22,10 @@ class AuthService {
       console.log('🔍 Réponse de connexion:', response);
 
       if (response.success && response.utilisateur) {
+        // ✅ PAS de manipulation cookie - le navigateur gère automatiquement
         this.currentUser = response.utilisateur;
         localStorage.setItem('user', JSON.stringify(response.utilisateur));
-        console.log('✅ Utilisateur connecté et stocké:', this.currentUser);
+        console.log('✅ Utilisateur connecté:', this.currentUser);
         return response;
       }
 
@@ -38,15 +39,13 @@ class AuthService {
 
   async logout(): Promise<void> {
     try {
-      // Tentative de déconnexion côté serveur
       await baseService.post('/auth/deconnexion', {});
     } catch (error) {
-      console.warn('⚠️ Erreur lors de la déconnexion serveur:', error);
+      console.warn('⚠️ Erreur déconnexion serveur:', error);
     } finally {
-      // Nettoyage côté client
       this.currentUser = null;
       localStorage.removeItem('user');
-      console.log('✅ Déconnexion locale effectuée');
+      console.log('✅ Déconnexion effectuée');
     }
   }
 
@@ -56,7 +55,6 @@ class AuthService {
       if (userData) {
         try {
           this.currentUser = JSON.parse(userData);
-          console.log('👤 Utilisateur récupéré du localStorage:', this.currentUser);
         } catch (e) {
           console.error('❌ Erreur parsing user data:', e);
           localStorage.removeItem('user');
@@ -67,60 +65,37 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    const user = this.getCurrentUser();
-    const isAuth = !!user;
-    console.log('🔍 Vérification authentification locale:', { isAuth, user: user?.email });
-    return isAuth;
+    return !!this.getCurrentUser();
   }
 
-  // ✅ CORRECTION : Utilisation de la route /api/auth/profil
   async checkSession(): Promise<boolean> {
     try {
-      console.log('🔍 Vérification de la session serveur...');
+      console.log('🔍 Vérification session...');
       
       const response = await baseService.get<ProfilResponse>('/auth/profil');
       
-      console.log('📡 Réponse session:', response);
-
       if (response.success && response.utilisateur) {
-        // Mettre à jour les infos utilisateur
         this.currentUser = response.utilisateur;
         localStorage.setItem('user', JSON.stringify(response.utilisateur));
-        console.log('✅ Session valide, utilisateur mis à jour:', this.currentUser);
+        console.log('✅ Session valide');
         return true;
       }
       
-      console.warn('⚠️ Session invalide');
       this.logout();
       return false;
     } catch (error: any) {
-      console.warn('⚠️ Erreur vérification session:', error.message);
-      
-      // Si erreur 401, session expirée
-      if (error.message?.includes('401') || error.message?.includes('Non authentifié')) {
-        console.log('🔒 Session expirée (401)');
-        this.logout();
-      }
-      
+      console.warn('⚠️ Session invalide:', error.message);
+      this.logout();
       return false;
     }
   }
 
-  // ✅ AJOUT : Rafraîchir les données utilisateur
   async refreshUserData(): Promise<AuthUser> {
     const sessionValid = await this.checkSession();
     if (!sessionValid || !this.currentUser) {
       throw new Error('Session expirée - veuillez vous reconnecter');
     }
     return this.currentUser;
-  }
-
-  // ✅ AJOUT : Vérification avec gestion d'erreur spécifique
-  async ensureAuthenticated(): Promise<void> {
-    const isValid = await this.checkSession();
-    if (!isValid) {
-      throw new Error('Votre session a expiré. Veuillez vous reconnecter.');
-    }
   }
 }
 

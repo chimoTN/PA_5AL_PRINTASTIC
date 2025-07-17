@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, Form, Button as BootstrapButton, Row, Col, Alert } from 'react-bootstrap';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { commandeService } from '../Services/commande.service';
+import { commandeService } from '../services/commande.service';
 import { loadStripe } from '@stripe/stripe-js';
 import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
 import { Modele3DClient } from '../services';

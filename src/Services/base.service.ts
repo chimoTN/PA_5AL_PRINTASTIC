@@ -1,4 +1,4 @@
-// src/services/base.service.ts
+// src/services/base.service.ts - VERSION COMPLÈTE CORRIGÉE
 import { API_BASE_URL } from '../config/env';
 
 export interface AuthUser {
@@ -13,10 +13,9 @@ export interface AuthResponse {
   success: boolean;
   message?: string;
   user?: AuthUser;
-  utilisateur?: AuthUser; // Compatibilité avec votre backend
+  utilisateur?: AuthUser;
 }
 
-// ✅ AJOUT : Interface AuthContextType manquante
 export interface AuthContextType {
   isAuthenticated: boolean;
   user: AuthUser | null;
@@ -34,7 +33,6 @@ export interface ApiResponse<T = any> {
   error?: string;
 }
 
-// ✅ AJOUT : Interface pour les files (cohérent avec votre backend)
 export interface FileClient {
   id: number;
   nom: string;
@@ -65,28 +63,25 @@ class BaseService {
 
   constructor() {
     this.baseURL = API_BASE_URL || 'http://127.0.0.1:3000/api';
-    console.log('🏗️ BaseService initialisé avec baseURL:', this.baseURL);
+    console.log('🏗️ BaseService initialisé (SESSION MODE):', this.baseURL);
   }
 
-  // ✅ CORRECTION : Plus besoin de headers JWT, juste les cookies
   private prepareHeaders(options: RequestInit = {}): Record<string, string> {
     const defaultHeaders: Record<string, string> = {
       'Accept': 'application/json',
     };
 
-    // ✅ Ne pas définir Content-Type pour FormData (le navigateur le fait automatiquement)
+    // Ne pas définir Content-Type pour FormData
     const isFormData = options.body instanceof FormData;
     if (!isFormData && options.method !== 'GET') {
       defaultHeaders['Content-Type'] = 'application/json';
     }
 
-    // ✅ Fusionner avec les headers personnalisés
     const customHeaders = options.headers as Record<string, string> || {};
     
-    console.log('🏷️ Headers préparés:', {
+    console.log('🏷️ Headers (SESSION MODE):', {
       ...defaultHeaders,
-      ...customHeaders,
-      authMode: 'Session/Cookie'
+      ...customHeaders
     });
 
     return { ...defaultHeaders, ...customHeaders };
@@ -96,16 +91,11 @@ class BaseService {
     const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
     const finalUrl = `${this.baseURL}${cleanEndpoint}`;
     
-    console.log('🌐 Construction URL:', {
-      baseURL: this.baseURL,
-      endpoint: cleanEndpoint,
-      finalUrl: finalUrl
-    });
+    console.log('🌐 URL:', finalUrl);
     
     return finalUrl;
   }
 
-  // ✅ CORRECTION : Méthode request simplifiée pour les sessions
   async request<T = any>(
     endpoint: string,
     options: RequestInit = {},
@@ -114,49 +104,60 @@ class BaseService {
     const url = this.buildUrl(endpoint);
     const headers = this.prepareHeaders(options);
     
-    const defaultOptions: RequestInit = {
-      credentials: 'include', // ✅ CRUCIAL pour les cookies de session
+    // 🔍 DEBUG COOKIES AVANT REQUÊTE
+    console.log('🍪 === COOKIES DEBUG ===');
+    console.log('🍪 Cookies disponibles:', document.cookie);
+    console.log('🌍 Domain actuel:', window.location.hostname);
+    console.log('🔗 URL cible:', url);
+    console.log('🍪 ====================');
+    
+    const requestOptions: RequestInit = {
+      credentials: 'include', // 🔑 SESSIONS : Toujours inclure les cookies
       headers,
       ...options,
     };
 
-    console.log('📡 Requête préparée:', {
+    console.log('📡 Requête SESSION:', {
       method: options.method || 'GET',
       url,
-      headers,
-      bodyType: options.body?.constructor.name || 'none',
       hasBody: !!options.body,
-      credentials: 'include'
+      credentials: 'include',
+      documentCookies: document.cookie // 🔍 AJOUTÉ
     });
 
-    // ✅ Upload avec progression si nécessaire
+    // Upload avec progression si nécessaire
     if (onProgress && options.body instanceof FormData) {
-      return this.requestWithProgress<T>(url, defaultOptions, onProgress);
+      return this.requestWithProgress<T>(url, requestOptions, onProgress);
     }
 
-    // ✅ Requête fetch normale
     try {
-      console.log(`🔄 FETCH ${options.method || 'GET'} ${url}`);
+      const response = await fetch(url, requestOptions);
       
-      const response = await fetch(url, defaultOptions);
-      
-      console.log('📡 Response reçue:', {
+      console.log('📡 Réponse:', {
         status: response.status,
         statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        ok: response.ok
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       });
+
+      // ✅ VÉRIFIER LES COOKIES DANS LA RÉPONSE
+      const setCookieHeader = response.headers.get('Set-Cookie');
+      if (setCookieHeader) {
+        console.log('🍪 Set-Cookie reçu:', setCookieHeader);
+      }
+      
+      // 🔍 DEBUG COOKIES APRÈS RÉPONSE
+      console.log('🍪 Cookies après requête:', document.cookie);
       
       if (!response.ok) {
         let errorMessage = `Erreur HTTP ${response.status}`;
         
-        // ✅ Gestion spécifique des erreurs de session
         switch (response.status) {
           case 401:
             errorMessage = 'Session expirée - veuillez vous reconnecter';
             break;
           case 403:
-            errorMessage = 'Accès refusé - permissions insuffisantes';
+            errorMessage = 'Accès refusé';
             break;
           case 404:
             errorMessage = 'Ressource non trouvée';
@@ -165,52 +166,44 @@ class BaseService {
             errorMessage = 'Fichier trop volumineux';
             break;
           case 500:
-            errorMessage = 'Erreur interne du serveur';
+            errorMessage = 'Erreur serveur';
             break;
         }
         
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
-          console.error('❌ Erreur serveur détaillée:', errorData);
-        } catch (parseError) {
-          console.warn('⚠️ Impossible de parser l\'erreur JSON');
+        } catch {
+          // Ignore parse errors
         }
         
         console.error(`❌ Erreur ${response.status}:`, errorMessage);
         throw new Error(errorMessage);
       }
       
-      // ✅ Traitement de la réponse
       const contentType = response.headers.get('Content-Type') || '';
       
       if (contentType.includes('application/json')) {
         const jsonResponse = await response.json();
-        console.log('✅ Réponse JSON parsée:', jsonResponse);
+        console.log('✅ Réponse JSON:', jsonResponse);
         return jsonResponse;
       } else {
         const textResponse = await response.text();
-        console.log('✅ Réponse texte reçue:', textResponse);
+        console.log('✅ Réponse texte:', textResponse);
         return { success: true, data: textResponse } as unknown as T;
       }
       
     } catch (error: any) {
-      console.error('❌ Erreur dans request:', error);
+      console.error('❌ Erreur requête:', error);
       
-      // ✅ CORRECTION : Meilleure gestion des erreurs de connexion
       if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        throw new Error('Erreur de connexion - vérifiez que le serveur est accessible');
-      }
-      
-      if (error.name === 'AbortError') {
-        throw new Error('Requête annulée');
+        throw new Error('Erreur de connexion au serveur');
       }
       
       throw error;
     }
   }
 
-  // ✅ CORRECTION : XMLHttpRequest pour upload avec session
   private requestWithProgress<T>(
     url: string,
     options: RequestInit,
@@ -219,36 +212,22 @@ class BaseService {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       
-      // ✅ Configuration de la progression
+      // Progression upload
       if (xhr.upload) {
-        xhr.upload.addEventListener('loadstart', () => {
-          console.log('🚀 Début de l\'upload');
-        });
-        
         xhr.upload.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
             const progress = Math.round((event.loaded * 100) / event.total);
             onProgress(progress);
-            console.log(`📊 Upload progression: ${progress}% (${event.loaded}/${event.total} bytes)`);
+            console.log(`📊 Upload: ${progress}%`);
           }
-        });
-        
-        xhr.upload.addEventListener('load', () => {
-          console.log('📤 Upload terminé');
-        });
-        
-        xhr.upload.addEventListener('error', () => {
-          console.error('❌ Erreur upload');
         });
       }
       
-      // ✅ Gestion des événements
       xhr.onload = () => {
         console.log('📡 XHR Response:', {
           status: xhr.status,
           statusText: xhr.statusText,
-          responseURL: xhr.responseURL,
-          responseText: xhr.responseText.substring(0, 200) + '...' // Truncated pour les logs
+          responseHeaders: xhr.getAllResponseHeaders()
         });
         
         if (xhr.status >= 200 && xhr.status < 300) {
@@ -256,20 +235,15 @@ class BaseService {
             const response = JSON.parse(xhr.responseText);
             console.log('✅ Upload réussi:', response);
             resolve(response);
-          } catch (parseError) {
-            console.warn('⚠️ Erreur parsing JSON, mais upload réussi');
+          } catch {
             resolve({ success: true, message: 'Upload réussi' } as unknown as T);
           }
         } else {
           let errorMessage = `Erreur HTTP ${xhr.status}`;
           
-          // ✅ Messages d'erreur spécifiques aux sessions
           switch (xhr.status) {
-            case 0:
-              errorMessage = 'Erreur de connexion réseau';
-              break;
             case 401:
-              errorMessage = 'Session expirée - veuillez vous reconnecter';
+              errorMessage = 'Session expirée';
               break;
             case 403:
               errorMessage = 'Accès refusé';
@@ -278,16 +252,15 @@ class BaseService {
               errorMessage = 'Fichier trop volumineux';
               break;
             case 500:
-              errorMessage = 'Erreur interne du serveur';
+              errorMessage = 'Erreur serveur';
               break;
           }
           
           try {
             const errorResponse = JSON.parse(xhr.responseText);
-            errorMessage = errorResponse.message || errorResponse.error || errorMessage;
-            console.error('❌ Erreur détaillée:', errorResponse);
+            errorMessage = errorResponse.message || errorMessage;
           } catch {
-            console.warn('⚠️ Impossible de parser l\'erreur');
+            // Ignore parse errors
           }
           
           console.error(`❌ XHR Error ${xhr.status}:`, errorMessage);
@@ -297,37 +270,33 @@ class BaseService {
       
       xhr.onerror = () => {
         console.error('❌ XHR Network Error');
-        reject(new Error('Erreur réseau lors de la requête'));
+        reject(new Error('Erreur réseau'));
       };
       
       xhr.ontimeout = () => {
         console.error('❌ XHR Timeout');
-        reject(new Error('Timeout - le serveur met trop de temps à répondre'));
+        reject(new Error('Timeout'));
       };
       
-      // ✅ Configuration de la requête avec session
-      console.log('🔄 XHR POST', url, '(avec progression et session)');
+      // 🔑 SESSIONS : Configuration XHR
       xhr.open(options.method || 'POST', url);
+      xhr.withCredentials = true; // CRUCIAL pour les cookies de session
+      xhr.timeout = 120000; // 2 minutes
       
-      // ✅ Ajout des headers (pas de Content-Type pour FormData)
+      // Headers (pas de Content-Type pour FormData)
       const headers = options.headers as Record<string, string> || {};
       Object.entries(headers).forEach(([key, value]) => {
         if (key.toLowerCase() !== 'content-type' || !(options.body instanceof FormData)) {
           xhr.setRequestHeader(key, value);
-          console.log(`🏷️ Header ajouté: ${key}: ${value}`);
         }
       });
       
-      // ✅ Configuration des cookies/session
-      xhr.withCredentials = true; // CRUCIAL pour les cookies de session
-      xhr.timeout = 120000; // 2 minutes
-      
-      console.log('📤 Envoi de la requête XHR avec session...');
+      console.log('📤 Envoi XHR avec session...');
       xhr.send(options.body as any);
     });
   }
 
-  // ✅ Méthodes utilitaires inchangées
+  // Méthodes utilitaires
   async get<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
@@ -341,9 +310,9 @@ class BaseService {
     const isFormData = data instanceof FormData;
     
     const requestOptions: RequestInit = {
-      ...options,
       method: 'POST',
       body: isFormData ? data : JSON.stringify(data),
+      ...options,
     };
 
     return this.request<T>(endpoint, requestOptions, onProgress);
@@ -369,45 +338,88 @@ class BaseService {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   }
 
-  // ✅ AJOUT : Méthode pour tester la session
-  async checkSession(): Promise<boolean> {
+  // Méthodes utilitaires spécifiques
+  async uploadFile<T = any>(
+    endpoint: string,
+    file: File,
+    additionalData?: Record<string, any>,
+    onProgress?: (progress: number) => void
+  ): Promise<T> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (additionalData) {
+      Object.entries(additionalData).forEach(([key, value]) => {
+        formData.append(key, String(value));
+      });
+    }
+
+    console.log('📤 Upload fichier:', {
+      endpoint,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      additionalData
+    });
+
+    return this.post<T>(endpoint, formData, {}, onProgress);
+  }
+
+  async uploadMultipleFiles<T = any>(
+    endpoint: string,
+    files: File[],
+    additionalData?: Record<string, any>,
+    onProgress?: (progress: number) => void
+  ): Promise<T> {
+    const formData = new FormData();
+    
+    files.forEach((file, index) => {
+      formData.append(`files[${index}]`, file);
+    });
+
+    if (additionalData) {
+      Object.entries(additionalData).forEach(([key, value]) => {
+        formData.append(key, String(value));
+      });
+    }
+
+    console.log('📤 Upload multiple fichiers:', {
+      endpoint,
+      filesCount: files.length,
+      totalSize: files.reduce((sum, file) => sum + file.size, 0),
+      additionalData
+    });
+
+    return this.post<T>(endpoint, formData, {}, onProgress);
+  }
+
+  // Méthodes de debug
+  getBaseURL(): string {
+    return this.baseURL;
+  }
+
+  async healthCheck(): Promise<any> {
     try {
-      await this.get('/auth/profil');
-      return true;
+      const response = await this.get('/health');
+      console.log('✅ Health check réussi:', response);
+      return response;
     } catch (error) {
-      console.warn('⚠️ Session invalide:', error);
-      return false;
+      console.error('❌ Health check échoué:', error);
+      throw error;
     }
   }
 
-  // ✅ AJOUT : Méthode pour télécharger des fichiers
-  async downloadFile(endpoint: string, filename?: string): Promise<void> {
+  async testConnection(): Promise<boolean> {
     try {
-      const response = await fetch(this.buildUrl(endpoint), {
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/octet-stream'
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erreur téléchargement: ${response.status}`);
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename || 'file';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-    } catch (error) {
-      console.error('❌ Erreur téléchargement:', error);
-      throw error;
+      await this.healthCheck();
+      return true;
+    } catch {
+      return false;
     }
   }
 }
 
 export const baseService = new BaseService();
+
+// Export par défaut
+export default baseService;

@@ -5,7 +5,7 @@ import { Button, Container, Row, Col, Form, Alert, Card } from 'react-bootstrap'
 import { useStripe, useElements, Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardNumberElement, CardExpiryElement, CardCvcElement } from "@stripe/react-stripe-js";
-import { paiementService } from '../Services/paiementService';
+import { paiementService } from '../services/paiementService';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';

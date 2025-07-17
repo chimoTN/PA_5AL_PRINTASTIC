@@ -6,7 +6,7 @@ import { Elements, CardElement, useStripe, useElements } from '@stripe/react-str
 import { loadStripe } from '@stripe/stripe-js';
 
 // ✅ CORRECTION: Import avec le bon nom de service
-import { commandeService } from '../Services/commande.service';
+import { commandeService } from '../services/commande.service';
 import { filesClientService } from '../services/filesClient.service';
 import { useAuth } from '../hooks/useAuth';
 

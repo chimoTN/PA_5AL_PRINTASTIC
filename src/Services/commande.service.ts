@@ -1,5 +1,5 @@
 // src/services/commande.service.ts
-import { baseService, ApiResponse } from '../Services/base.service';
+import { baseService, ApiResponse } from './base.service';
 
 // ✅ Interfaces TypeScript pour la commande
 export interface DetailCommande {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { imprimeurService } from '../../Services/imprimeur.service';
+import { imprimeurService } from '../../services/imprimeur.service';
 import { useAuth } from '../../hooks/useAuth';
 
 interface Demande {

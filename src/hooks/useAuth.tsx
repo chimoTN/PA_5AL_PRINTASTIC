@@ -1,7 +1,7 @@
-// src/hooks/useAuth.tsx
+// src/hooks/useAuth.tsx - CORRIGÉ
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authService } from '../Services/auth.service';
-import { AuthUser } from '../Services/base.service';
+import { authService } from '../services/auth.service';
+import { AuthUser } from '../services/base.service';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -19,21 +19,31 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [error] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const refreshAuth = async () => {
     setIsLoading(true);
     try {
+      console.log('🔄 Refresh auth...');
+      
+      // ✅ IMPORTANT : Initialiser le cookie AVANT checkSession
+      authService.initializeSession();
+      
       const ok = await authService.checkSession();
+      console.log('📡 Session check result:', ok);
+      
       if (ok) {
         const u = authService.getCurrentUser();
+        console.log('👤 User from service:', u);
         setUser(u);
         setIsAuthenticated(true);
-      }  else {
+      } else {
+        console.log('❌ Session invalide');
         setUser(null);
         setIsAuthenticated(false);
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ Error in refreshAuth:', error);
       setUser(null);
       setIsAuthenticated(false);
     } finally {
@@ -41,13 +51,35 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
     }
   };
 
+
+
+  // ✅ CORRECTION : Gestion d'erreur dans login
   const login = async (email: string, motDePasse: string) => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      await authService.login(email, motDePasse);
-      const u = authService.getCurrentUser();
-      setUser(u);
-      setIsAuthenticated(true);
+      console.log('🔑 Hook login attempt:', email);
+      
+      const response = await authService.login(email, motDePasse);
+      console.log('✅ AuthService login response:', response);
+      
+      if (response.success && response.utilisateur) {
+        setUser(response.utilisateur);
+        setIsAuthenticated(true);
+        console.log('✅ Hook login success:', response.utilisateur);
+      } else {
+        throw new Error(response.message || 'Échec de la connexion');
+      }
+      
+    } catch (error: any) {
+      console.error('❌ Hook login error:', error);
+      setError(error.message || 'Erreur de connexion');
+      setUser(null);
+      setIsAuthenticated(false);
+      
+      // ✅ IMPORTANT : Rethrow pour que LoginPage puisse récupérer l'erreur
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -55,10 +87,16 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
 
   const logout = async () => {
     setIsLoading(true);
-    await authService.logout();
-    setUser(null);
-    setIsAuthenticated(false);
-    setIsLoading(false);
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('❌ Error in logout:', error);
+    } finally {
+      setUser(null);
+      setIsAuthenticated(false);
+      setError(null);
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -66,7 +104,15 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, error, login, logout, refreshAuth }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      isAuthenticated, 
+      isLoading, 
+      error, 
+      login, 
+      logout, 
+      refreshAuth 
+    }}>
       {children}
     </AuthContext.Provider>
   );
