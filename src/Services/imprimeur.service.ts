@@ -1,8 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
 
-const API_BACK = 'http://localhost:3000/api/imprimeur'; 
-
-const API_BACK_stripe = 'http://localhost:3000/api'; 
+import { API_BASE_URL } from '../config/env';
 
 export const imprimeurService = {
   /**
@@ -17,7 +15,7 @@ export const imprimeurService = {
     requesterEmail: string;
     requesterName?: string;
   }) {
-    const res: AxiosResponse = await axios.post(`${API_BACK}/printer-requests`, payload);
+    const res: AxiosResponse = await axios.post(`${API_BASE_URL}/imprimeur/printer-requests`, payload);
     return res.data;
   },
 
@@ -25,7 +23,7 @@ export const imprimeurService = {
    * Accepte une demande d'inscription
    */
   async approveRequest(id: number, reviewedById: number) {
-    const res: AxiosResponse = await axios.post(`${API_BACK}/demande/${id}/approve`, {
+    const res: AxiosResponse = await axios.post(`${API_BASE_URL}/imprimeur/demande/${id}/approve`, {
       reviewedById,
     });
     return res.data;
@@ -35,7 +33,7 @@ export const imprimeurService = {
    * Refuse une demande d'inscription
    */
   async rejectRequest(id: number, reviewedById: number) {
-    const res: AxiosResponse = await axios.post(`${API_BACK}/demande/${id}/reject`, {
+    const res: AxiosResponse = await axios.post(`${API_BASE_URL}/imprimeur/demande/${id}/reject`, {
       reviewedById,
     });
     return res.data;
@@ -45,7 +43,7 @@ export const imprimeurService = {
    * Récupère toutes les demandes d'imprimeur
    */
   async getAllPrinterRequests() {
-    const res: AxiosResponse = await axios.get(`${API_BACK}/printer-requests`);
+    const res: AxiosResponse = await axios.get(`${API_BASE_URL}/imprimeur/printer-requests`);
     return res.data;
   },
 
@@ -53,7 +51,7 @@ export const imprimeurService = {
  * Crée un compte Stripe pour l'imprimeur et envoie l'email d'onboarding
  */
     async createStripeAccount(id: number) {
-    const res: AxiosResponse = await axios.post(`${API_BACK_stripe}/stripe/create-imprimeur-account`, {
+    const res: AxiosResponse = await axios.post(`${API_BASE_URL}/stripe/create-imprimeur-account`, {
         imprimeurId: id
     });
     return res.data;

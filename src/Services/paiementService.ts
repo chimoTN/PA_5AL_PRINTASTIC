@@ -19,7 +19,7 @@ export interface PaiementData {
   stripePaymentId: string;
   produits: Array<{ 
     id: number; 
-    nom: string;        // ✅ Ajout de la propriété nom
+    nom: string;      
     quantity: number; 
     price: number;
   }>;
@@ -52,4 +52,20 @@ export const paiementService = {
   async enregistrerPaiement(paiementData: PaiementData) {
     return axios.post(`${API_BASE_URL}/auth/paiement`, paiementData);
   },
+  /*
+  // 🔸 Enregistre le paiement finalisé dans ton backend (optionnel)
+  async enregistrerPaiement(paiementData: {
+    prenom: string;
+    nom: string;
+    email: string;
+    telephone: string;
+    adresse: string;
+    prixTotal: number;
+    stripePaymentId: string;
+    produits: Array<{ id: number; quantity: number; price: number }>;
+    utilisateurId: number;
+  }) {
+    return axios.post(`${API_BASE_URL}/auth/paiement`, paiementData);
+  },
+  */
 };

@@ -1,14 +1,14 @@
 // src/services/impression.service.ts
 import axios, { AxiosResponse } from 'axios';
 
-const API_BACK = 'http://localhost:3000/api/impression';
+import { API_BASE_URL } from '../config/env';
 
 export const impressionService = {
   /**
    * Récupère tous les détails de commandes non attribués à un imprimeur
    */
   async getNonAttribuees() {
-    const res: AxiosResponse = await axios.get(`${API_BACK}/non-attribuees`);
+    const res: AxiosResponse = await axios.get(`${API_BASE_URL}/impression/non-attribuees`);
     return res.data;
   },
 
@@ -19,7 +19,7 @@ export const impressionService = {
    */
   async prendreCommandes(idsDetailCommandes, userID) {
     const res: AxiosResponse = await axios.post(
-      `${API_BACK}/prendre`,
+      `${API_BASE_URL}/impression/prendre`,
       { idsDetailCommandes, userID } // ✅ envoi dans le body
     );
     return res.data;
@@ -31,7 +31,7 @@ export const impressionService = {
    * @param userID L’ID de l’imprimeur
    */
   async getCommandesImprimeur(userID) {
-    const res: AxiosResponse = await axios.get(`${API_BACK}/imprimeur/${userID}`);
+    const res: AxiosResponse = await axios.get(`${API_BASE_URL}/impression/imprimeur/${userID}`);
     return res.data;
   }
 };
