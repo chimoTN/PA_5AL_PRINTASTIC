@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { imprimeurService } from '../../services/imprimeur.service';
 import { useAuth } from '../../hooks/useAuth';
-import { API_BASE_URL } from '@/config/env';
 
 interface Demande {
   id: number;
@@ -20,6 +19,8 @@ const GestionImprimeurs: React.FC = () => {
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const { user } = useAuth();
+
+  const API_BACK = import.meta.env.API_BACK_SANS;
 
   const fetchDemandes = async () => {
     try {
@@ -63,7 +64,7 @@ const GestionImprimeurs: React.FC = () => {
 
   return (
     <div className="dashboard-page" style={{ padding: '20px', background: '#f5f8fa' }}>
-      <h2>📩 Demandes d'inscription Imprimeur</h2>
+      <h2>Demandes d'inscription Imprimeur</h2>
 
       <table style={{ width: '100%', marginTop: '20px', background: '#fff', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden' }}>
         <thead style={{ background: '#ddd' }}>
@@ -121,7 +122,7 @@ const GestionImprimeurs: React.FC = () => {
                       {d.sampleFile && (
                         <p>
                           <strong>Fichier échantillon :</strong>{' '}
-                          <a href={`${API_BASE_URL}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
+                          <a href={`${API_BACK}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
                             📎 Voir le fichier
                           </a>
                         </p>
@@ -143,7 +144,7 @@ const GestionImprimeurs: React.FC = () => {
 
 
       {/* Les demande refusé */}
-      <h2>📩 Demandes d'inscription rejetée</h2>
+      <h2>Demandes d'inscription rejetée</h2>
 
       <table style={{ width: '100%', marginTop: '20px', background: '#fff', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden' }}>
         <thead style={{ background: '#ddd' }}>
@@ -201,7 +202,7 @@ const GestionImprimeurs: React.FC = () => {
                       {d.sampleFile && (
                         <p>
                           <strong>Fichier échantillon :</strong>{' '}
-                          <a href={`${API_BASE_URL}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
+                          <a href={`${API_BACK}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
                             📎 Voir le fichier
                           </a>
                         </p>

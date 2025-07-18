@@ -52,20 +52,24 @@ export const ProductList = () => {
           <div style={{ display: 'flex', justifyContent: 'center', margin: '4rem' }}>
             <Spinner animation="border" variant="light" />
           </div>
-        ) : (
-          produits.map((produit) => (
-            <div key={produit.id} style={{ width: "250px" }}>
-              <ProductCard
-                id={produit.id}
-                name={produit.nom}
-                price={produit.prix}
-                imageUrl={produit.imageUrl}
-                description={produit.description}
-                modelUrl={produit.modelUrl}
-              />
-            </div>
-          ))
-        )}
+        ) : produits && produits.length > 0 ? (
+            produits.map((produit) => (
+              <div key={produit.id} style={{ width: "250px" }}>
+                <ProductCard
+                  id={produit.id}
+                  name={produit.nom}
+                  price={produit.prix}
+                  imageUrl={produit.imageUrl}
+                  description={produit.description}
+                  modelUrl={produit.modelUrl}
+                />
+              </div>
+            ))
+          ) : (
+            <p style={{ color: "#ccc", fontSize: "1.2rem", textAlign: "center", marginTop: "3rem" }}>
+              Aucun produit disponible pour le moment.
+            </p>
+          )}
 
       </div>
     </div>

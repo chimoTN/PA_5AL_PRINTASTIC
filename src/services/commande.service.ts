@@ -1,6 +1,9 @@
 // src/services/commande.service.ts
 import { baseService, ApiResponse } from './base.service';
 
+import axios, { AxiosResponse } from 'axios';
+import { API_BASE_URL } from '@/config/env';
+
 // ✅ Interfaces TypeScript pour la commande
 export interface DetailCommande {
   id: number;
@@ -78,6 +81,7 @@ export interface CreateCommandeResponse extends ApiResponse {
 }
 
 class CommandeService {
+
   private endpoint = '/commandes';
 
   /**
@@ -384,6 +388,23 @@ class CommandeService {
     
     return statusConfig[statut as keyof typeof statusConfig] || statusConfig.en_attente;
   }
+
+
+  /**
+   * 🧾 Récupère toutes les commandes (admin uniquement)
+   */
+  async commandeGetAll(): Promise<CommandeResponse> {
+    try {
+      console.log('🧾 [SERVICE] Récupération de toutes les commandes (admin)...');
+
+      const response = await axios.get(`${API_BASE_URL}/stripe/getAll-command`);
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ [SERVICE] Erreur lors de la récupération de toutes les commandes:', error);
+      throw new Error(error.message || 'Impossible de récupérer les commandes');
+    }
+  }
+
 }
 
 export const commandeService = new CommandeService();
