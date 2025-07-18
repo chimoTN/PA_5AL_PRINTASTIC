@@ -327,13 +327,8 @@ const Dashboard: React.FC = () => {
           {activeTab === 'files' && (
             <div className="tab-content files-tab">
               <FilesClientList
-                key={refreshTrigger}
-                showAllFiles={isOwnerOrPrinter}
-                onVerificationUpdate={handleVerificationUpdate}
-                onFileSelect={(file) => {
-                  // console.log('📁 Fichier sélectionné:', file);
-                  handleFileAction();
-                }}
+                key={1}
+                showAllFiles={false}
               />
             </div>
           )}

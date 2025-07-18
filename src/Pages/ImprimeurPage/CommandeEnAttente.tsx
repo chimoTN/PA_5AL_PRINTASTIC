@@ -189,13 +189,13 @@ const CommandeEnAttente = () => {
                     <td>{extractCity(order.commande?.adresse)}</td>
                     <td>{renderStatusBadge(order.statut)}</td>
                     <td>
-                      <Button
-                        variant="primary"
-                        size="sm"
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
                         onClick={() => acceptOrder(order)}
                       >
                         Accepter
-                      </Button>
+                      </button>
                     </td>
                   </tr>
                 ))

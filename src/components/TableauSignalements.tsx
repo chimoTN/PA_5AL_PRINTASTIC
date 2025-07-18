@@ -1,6 +1,5 @@
 // src/components/SignalementTable.tsx
 import React, { useEffect, useState } from 'react';
-import { Table, Button } from 'react-bootstrap';
 import { toast } from 'sonner';
 import { signalementService } from '../services/signalement.service';
 
@@ -9,7 +8,6 @@ const TableauSignalements = () => {
   const [colonneTriee, setColonneTriee] = useState<'date' | 'type' | null>(null);
   const [selectionId, setSelectionId] = useState<number | null>(null);
   const [signalements, setSignalements] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchAll();
@@ -21,7 +19,6 @@ const TableauSignalements = () => {
   };
 
   const fetchAll = async () => {
-    setLoading(true);
     try {
       const data = await signalementService.getAllSignalements();
       const formate = data.map((s: any) => ({
@@ -36,18 +33,6 @@ const TableauSignalements = () => {
         resolu: s.resolu ?? false
       }));
       setSignalements(formate);
-    } catch (err) {
-      toast.error((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const annulerCommande = async (detailCommandeId: number) => {
-    try {
-      await signalementService.annulerCommande(detailCommandeId);
-      toast.success('Commande annulée avec succès');
-      fetchAll();
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -163,10 +148,7 @@ const TableauSignalements = () => {
 
 export default TableauSignalements;
 
-const thStyle = {
-  padding: '10px',
-  textAlign: 'left'
-};
+const thStyle: React.CSSProperties = { padding: '10px', textAlign: 'center' as const };
 
 const tdStyle = {
   padding: '10px',

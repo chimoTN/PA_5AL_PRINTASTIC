@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import caddie from '../assets/images/caddie.png';
-import { Button } from 'react-bootstrap';
 import { useCart } from '../hooks/useSoppingCart';
 
 type ProductCardProps = {
@@ -72,13 +71,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
             }}
         >
             <h5 style={{ margin: 0 }}>{name}</h5>
-            <Button
-                variant="primary"
+            <button
+                type="button"
+                className="btn btn-primary"
                 onClick={handleAddToCart}
-                style={{ padding: '6px 10px' }}
             >
                 <img src={caddie} alt="Caddie" style={{ width: 20, height: 20 }} />
-            </Button>
+                Ajouter au panier
+            </button>
         </div>
 
         <p style={{ margin: 0, color: '#333' }}>{price} €</p>

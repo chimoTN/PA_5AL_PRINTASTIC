@@ -1,4 +1,4 @@
-import { Container, Row, Col, Button } from "react-bootstrap";
+import { Container, Row, Col } from "react-bootstrap";
 import { ProductList } from "../components/ListProduct";
 import "../assets/styles/Accueil.css"; // ajoute un fichier CSS dédié
 
@@ -15,7 +15,7 @@ export const Accueil = () => {
                 <p className="hero-subtitle">High-quality 3D printed figurines</p>
               </Col>
               <Col xs={12}>
-                <Button className="hero-button" variant="none">SHOP NOW</Button>
+                <button type="button" className="hero-button btn btn-light">SHOP NOW</button>
               </Col>
             </Row>
         </Container>

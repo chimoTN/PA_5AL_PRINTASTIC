@@ -1,10 +1,6 @@
 // 📦 Composant React StripeCheckoutButton.tsx
-import { loadStripe } from '@stripe/stripe-js';
-import { useEffect, useState } from 'react';
-import { Button } from 'react-bootstrap';
+import { useState } from 'react';
 import { useCart } from '../hooks/useSoppingCart';
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || 'pk_test_xxx');
 
 const StripeCheckoutButton = () => {
   const { cart } = useCart();
@@ -32,9 +28,9 @@ const StripeCheckoutButton = () => {
   };
 
   return (
-    <Button onClick={handleCheckout} disabled={loading} variant="primary">
+    <button type="button" className="btn btn-primary" onClick={handleCheckout} disabled={!!loading}>
       {loading ? 'Chargement...' : 'Passer au paiement'}
-    </Button>
+    </button>
   );
 };
 

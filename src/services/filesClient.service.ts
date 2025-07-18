@@ -3,7 +3,6 @@ import { baseService } from "./base.service";
 import { 
   FileClientListResponse, 
   FileClientDeleteResponse, 
-  FileClientUploadProps,
   Modele3DClient 
 } from '../types/FileClientData';
 
@@ -29,10 +28,10 @@ interface FileClientUploadData {
   pays: string;
 }
 
-interface FileClientUploadResponse {
+export interface FileClientUploadResponse {
   success: boolean;
-  message: string;
-  data: Modele3DClient;
+  message?: string;
+  data?: any;
 }
 
 interface UpdateFileClientVerificationData {

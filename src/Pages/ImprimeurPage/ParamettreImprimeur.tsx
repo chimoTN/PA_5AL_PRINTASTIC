@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Button } from 'react-bootstrap';
+import { Container, Row, Col } from 'react-bootstrap';
 import { generateImpressionReport } from '../../utilis/pdf/generateImpressionReport';
 import { useAuth } from '../../hooks/useAuth';
 import { impressionService } from '../../services/impression.service';
@@ -157,13 +157,13 @@ const ProfilImprimeur: React.FC = () => {
                     </select>
 
 
-                    <Button
-                      variant="primary"
-                      className="mt-3"
+                    <button
+                      type="button"
+                      className="btn btn-primary mt-3"
                       onClick={() => generateImpressionReport(infosEntreprise, commandesLivrees, selectedPeriod)}
                     >
                       📥 Télécharger rapport d'impression
-                    </Button>
+                    </button>
                   </>
                 )}
 

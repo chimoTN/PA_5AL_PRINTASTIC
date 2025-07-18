@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Button, Modal } from 'react-bootstrap'; 
+import { Modal } from 'react-bootstrap'; 
 import { userService } from '../services/user.service';
 import '../assets/styles/LoginPage.css';
 
@@ -40,7 +40,7 @@ export default function InscriptionPage() {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      setForm(f => ({ ...f, sampleFile: reader.result }));
+      setForm(f => ({ ...f, sampleFile: reader.result as string }));
     };
     reader.readAsDataURL(file);
   };
@@ -97,9 +97,9 @@ export default function InscriptionPage() {
       <div className="text-center mt-5">
         <h2>🎉 Merci pour votre demande</h2>
         <p>Nous avons bien reçu votre formulaire. Vous serez notifié par email.</p>
-        <Button variant="outline-dark" onClick={() => navigate('/')}>
-          Retour à l’accueil
-        </Button>
+        <button type="button" className="btn btn-outline-dark" onClick={() => navigate('/')}>
+          Retour à l'accueil
+        </button>
       </div>
     );
   }
@@ -185,9 +185,9 @@ export default function InscriptionPage() {
         </button>
 
         <div className="text-center mt-2">
-          <Button variant="link" onClick={() => navigate('/login')}>
+          <button type="button" className="btn btn-link" onClick={() => navigate('/login')}>
             ← Retour
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -203,7 +203,7 @@ export default function InscriptionPage() {
             ✅ Respectez les délais une fois une commande acceptée</p>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowCGUModal(false)}>Fermer</Button>
+          <button type="button" className="btn btn-secondary" onClick={() => setShowCGUModal(false)}>Fermer</button>
         </Modal.Footer>
       </Modal>
     </div>

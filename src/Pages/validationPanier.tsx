@@ -1,8 +1,8 @@
 // ✅ CheckoutPage.tsx – version propre avec appel au service central
 import { useCart } from '../hooks/useSoppingCart';
 import { useState, useEffect } from 'react';
-import { Button, Container, Row, Col, Form, Alert, Card } from 'react-bootstrap';
-import { useStripe, useElements, Elements } from '@stripe/react-stripe-js';
+import { Container, Row, Col, Form, Alert, Card } from 'react-bootstrap';
+import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
 import { CardNumberElement, CardExpiryElement, CardCvcElement } from "@stripe/react-stripe-js";
 import { paiementService } from '../services/paiementService';
@@ -74,15 +74,15 @@ const handleSubmit = async (e: React.FormEvent) => {
         prenom: user?.prenom || 'chaima',                           // du contexte auth
         nom:   user?.nom || 'Ouertani',
         email: user?.email || 'mail@gmail.com' ,
-        telephone: user?.telephone || '01',            // à ajouter dans ton state adresse
+        telephone: '01',            // à ajouter dans ton state adresse
         adresse: `${address.fullAddress}, ${address.city} ${address.zip}`,
         prixTotal: total,
         stripePaymentId: '1',
         produits: cart.map(item => ({
-          id:       item.id,
-          name:       item.name,
+          id: item.id,
+          nom: item.name,
           quantity: item.quantity,
-          price:    item.price
+          price: item.price
         })), 
         utilisateurId: user?.id || 5
       });  
@@ -191,14 +191,13 @@ const handleSubmit = async (e: React.FormEvent) => {
               </Form.Group>
               {validationError && <Alert variant="danger">{validationError}</Alert>}
               
-              <Button 
+              <button 
                 type="submit"
                 disabled={!isCardComplete || !isAddressValid}
-                variant="primary"
-                className="w-100"
+                className="btn btn-primary w-100"
               >
                 Payer
-              </Button>
+              </button>
             </Form>
           </Card>
         </Col>

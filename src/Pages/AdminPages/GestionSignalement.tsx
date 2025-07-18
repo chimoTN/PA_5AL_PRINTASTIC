@@ -32,7 +32,7 @@ const GestionSignalement: React.FC = () => {
         // si votre service renvoie { success, data } ou un tableau directement
         const sigData = Array.isArray(sigResp)
           ? sigResp
-          : sigResp.data ?? []; 
+          : (sigResp as any).data ?? []; 
 
         const sigFormate = sigData.map((s: any) => ({
           id: s.id,
@@ -109,7 +109,7 @@ const GestionSignalement: React.FC = () => {
             <>
               {reclamations.length > 0 && (
                 <>
-                  <TableauReclamation donnees={reclamations} />
+                  <TableauReclamation donnees={reclamations as any} />
                 </>
               )}
             </>

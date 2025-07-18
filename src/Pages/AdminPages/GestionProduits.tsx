@@ -82,7 +82,7 @@ const GestionProduits: React.FC = () => {
   
   const handleModifier = async (id: number) => {
     try {
-      await produitService.update(id);
+      await produitService.update(id, {});
       fetchProduits();
     } catch (error) {
       console.error('Erreur suppression :', error);

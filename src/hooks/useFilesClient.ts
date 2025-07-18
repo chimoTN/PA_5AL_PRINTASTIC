@@ -1,7 +1,7 @@
 // src/hooks/useFilesClient.ts
 import { useState, useCallback } from 'react';
-import { filesClientService, FileClientUploadData, FileClientUploadResponse } from '../services/filesClient.service';
-import { Modele3DClient } from '../services';
+import { filesClientService, FileClientUploadData } from '../services/filesClient.service';
+import { Modele3DClient } from '../types/FileClientData';
 
 export const useFilesClient = () => {
   const [files, setFiles] = useState<Modele3DClient[]>([]); // ✅ Type correct
@@ -14,7 +14,7 @@ export const useFilesClient = () => {
   const uploadFile = useCallback(async (
     uploadData: FileClientUploadData,
     onProgress?: (progress: number) => void
-  ): Promise<FileClientUploadResponse> => {
+  ): Promise<any> => { // Changed from FileClientUploadResponse to any
     if (uploading) {
       throw new Error('Un upload est déjà en cours');
     }
@@ -136,8 +136,8 @@ export const useFilesClient = () => {
   const getFilesStats = useCallback(() => {
     return {
       total: files.length,
-      totalSize: files.reduce((sum, file) => sum + (file.tailleFichier || 0), 0),
-      formats: [...new Set(files.map(file => file.nomFichier?.split('.').pop()?.toLowerCase() || 'unknown'))],
+      totalSize: files.reduce((sum, file) => sum + (Number(file.fichier3D?.tailleFichier) || 0), 0),
+      formats: [...new Set(files.map(file => file.fichier3D?.nomFichier?.split('.').pop()?.toLowerCase() || 'unknown'))],
       recent: files.slice(0, 5),
       verified: files.filter(file => file.estVerifie).length,
       unverified: files.filter(file => !file.estVerifie).length
@@ -155,14 +155,14 @@ export const useFilesClient = () => {
         return false;
       }
       
-      if (filter.format && !file.nomFichier?.toLowerCase().endsWith(filter.format.toLowerCase())) {
+      if (filter.format && !file.fichier3D?.nomFichier?.toLowerCase().endsWith(filter.format.toLowerCase())) {
         return false;
       }
       
       if (filter.search) {
         const searchTerm = filter.search.toLowerCase();
         return file.nom?.toLowerCase().includes(searchTerm) || 
-               file.nomFichier?.toLowerCase().includes(searchTerm);
+               file.fichier3D?.nomFichier?.toLowerCase().includes(searchTerm);
       }
       
       return true;
@@ -173,8 +173,8 @@ export const useFilesClient = () => {
   const getAvailableFormats = useCallback(() => {
     const formats = new Set<string>();
     files.forEach(file => {
-      if (file.nomFichier) {
-        const extension = file.nomFichier.split('.').pop()?.toLowerCase();
+      if (file.fichier3D?.nomFichier) {
+        const extension = file.fichier3D.nomFichier.split('.').pop()?.toLowerCase();
         if (extension) {
           formats.add(extension);
         }
@@ -217,7 +217,7 @@ export const useFilesClient = () => {
     filesCount: files.length,
     verifiedCount: files.filter(f => f.estVerifie).length,
     unverifiedCount: files.filter(f => !f.estVerifie).length,
-    totalSize: files.reduce((sum, file) => sum + (file.tailleFichier || 0), 0)
+    totalSize: files.reduce((sum, file) => sum + (Number(file.fichier3D?.tailleFichier) || 0), 0)
   };
 };
 

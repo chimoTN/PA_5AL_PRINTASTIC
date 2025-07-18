@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Container, Row, Col, Card, Table, Image, Badge, Button, Form, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Card, Table, Image, Badge, Form, Modal } from 'react-bootstrap';
 import { impressionService } from '../../services/impression.service';
 import { commandeService } from '../../services/commande.service';
 import { useAuth } from '../../hooks/useAuth';
@@ -89,7 +89,7 @@ const CommandEnCours = () => {
   /* on envoie la commande */
   const envoyerProduit = async () => {
     try {
-      await commandeService.changerStatutDetailCommande(selectedOrder.id, 'expédié', trackingCode);
+      await commandeService.changerStatutDetailCommande(selectedOrder.id, 'expédié');
       await fetchAccepted();
       setSelectedOrder(null);
     } catch (err) {
@@ -181,9 +181,9 @@ const CommandEnCours = () => {
                       <td>{formatDate(order.createdAt)}</td>
                       <td>{renderStatusBadge(order.statut)}</td>
                       <td>
-                        <Button size="sm" variant="primary" onClick={() => handleManageClick(order)}>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={() => handleManageClick(order)}>
                           Gérer
-                        </Button>
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -207,27 +207,27 @@ const CommandEnCours = () => {
 
                 <p>
                   <strong>Téléchargement :</strong>{' '}
-                  <Button
-                    className="btn-sm"
-                    variant="outline-secondary"
-                    disabled={isExpedie}
+                  <a
+                    className="btn btn-sm btn-outline-secondary"
                     href={`${API_BACK}/${selectedOrder.produit?.fichier3d.cheminFichier}`}
-                    download={`modele-${selectedOrder.id}.${selectedOrder.produit?.fichier3d.format}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ marginRight: '10px' }}
                   >
                     Télécharger le modèle 3D
-                  </Button>
+                  </a>
                 </p>
 
                 <hr />
 
-                <Button
-                  variant="success"
-                  className="mb-3"
+                <button
+                  type="button"
+                  className="btn btn-success mb-3"
                   onClick={() => setShowForm(!showForm)}
                   disabled={isExpedie}
                 >
                   📦 Envoyer la commande
-                </Button>
+                </button>
 
                 {showForm && !isExpedie && (
                   <>
@@ -240,26 +240,26 @@ const CommandEnCours = () => {
                         placeholder="Ex: XX12345678FR"
                       />
                     </Form.Group>
-                    <Button variant="primary" onClick={envoyerProduit}>
+                    <button type="button" className="btn btn-primary" onClick={envoyerProduit}>
                       Valider l’envoi
-                    </Button>
+                    </button>
                   </>
                 )}
 
                 <hr />
 
-                <Button variant="danger" onClick={abandonnerCommande} disabled={isExpedie}>
+                <button type="button" className="btn btn-danger" onClick={abandonnerCommande} disabled={isExpedie}>
                   Abandonner la commande
-                </Button>
+                </button>
                 
-                <Button
-                  variant="warning"
-                  className="ms-2"
+                <button
+                  type="button"
+                  className="btn btn-warning ms-2"
                   onClick={open}
                   disabled={isExpedie}
                 >
                   Signalé
-                </Button>
+                </button>
 
                 <Modal show={showModal} onHide={close} centered>
                     <Modal.Header closeButton>
@@ -306,16 +306,12 @@ const CommandEnCours = () => {
                       </Form>
                     </Modal.Body>
                     <Modal.Footer>
-                      <Button variant="secondary" onClick={close} disabled={submitting}>
+                      <button type="button" className="btn btn-secondary" onClick={close} disabled={submitting}>
                         Annuler
-                      </Button>
-                      <Button
-                        variant="primary"
-                        onClick={handleSubmit}
-                        disabled={submitting}
-                      >
+                      </button>
+                      <button type="button" className="btn btn-primary" onClick={handleSubmit} disabled={submitting}>
                         {submitting ? 'Envoi...' : 'Envoyer la requête'}
-                      </Button>
+                      </button>
                     </Modal.Footer>
                 </Modal>
 

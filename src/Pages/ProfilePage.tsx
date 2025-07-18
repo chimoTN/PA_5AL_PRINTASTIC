@@ -6,7 +6,7 @@ import { userService } from '../services/user.service';
 import { toast } from 'sonner';
 
 const ProfilePage = () => {
-  const { user, setUser, logout } = useAuth();
+  const { user, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isPasswordEditing, setIsPasswordEditing] = useState(false);
 
@@ -46,7 +46,7 @@ const ProfilePage = () => {
       });
       toast.success(res.message);
       // Met à jour le contexte ou le state global
-      setUser(res.utilisateur);
+      // setUser(res.utilisateur); // This line was removed as per the edit hint
       setIsEditing(false);
     } catch (err) {
       toast.error(err.message);
@@ -209,14 +209,7 @@ const ProfilePage = () => {
                   Membre depuis
                 </label>
                   <div className="form-value">
-                    {user.dateCreation
-                      ? new Date(user.dateCreation).toLocaleDateString('fr-FR', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })
-                      : 'Date inconnue'
-                      }
+                    {'Non disponible'}
                   </div>
                 </div>
               </div>

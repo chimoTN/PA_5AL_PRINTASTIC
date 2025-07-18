@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { Container, Button } from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import '../assets/styles/productDetail.css';
 import { useCart } from '../hooks/useSoppingCart';
 import ModelViewerModal from '../components/ModelViewerModal';
@@ -48,22 +48,24 @@ const ProductDetails: React.FC = () => {
             <h3 className="text-primary">{price} €</h3>
             <p style={{ whiteSpace: 'pre-line' }}>{description}</p>
 
-            <Button
-              variant="primary"
+            <button
+              type="button"
+              className="btn btn-primary"
               onClick={handleAddToCart}
             >
               Ajouter au panier
-            </Button>
+            </button>
 
 
             <br />
           
-            <Button
-              variant="outline-secondary"
+            <button
+              type="button"
+              className="btn btn-outline-secondary"
               onClick={() => setShowModal(true)}
             >
               Voir le modèle 3D
-            </Button>
+            </button>
 
             <ModelViewerModal
               show={showModal}

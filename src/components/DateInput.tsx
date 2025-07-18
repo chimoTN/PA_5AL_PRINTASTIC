@@ -1,5 +1,4 @@
 // src/components/DateInput.tsx
-import React from 'react';
 import DatePicker from 'react-datepicker';
 import { InputGroup, FormControl } from 'react-bootstrap';
 import { FaCalendarAlt } from 'react-icons/fa';

@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import '@/assets/styles/Navbar.css';
 import caddie from '../assets/images/caddie.png';
-import { Button } from 'react-bootstrap';
 import { useCart } from '../hooks/useSoppingCart';
 
 const Navbar: React.FC = () => {
@@ -106,15 +105,10 @@ const Navbar: React.FC = () => {
 
         {/* Panier toujours visible */}
         <div className="cart-container" style={{ position: 'relative', marginLeft: '15px' }}>
-          <Button
-            variant="primary"
-            style={{ 
-              padding: '6px 10px',
-              display: 'flex',
-              alignItems: 'center',
-              backgroundColor: '#007bff',
-              border: 'none'
-            }}
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ padding: '6px 10px', display: 'flex', alignItems: 'center', backgroundColor: '#007bff', border: 'none' }}
             onClick={() => navigate('/shoppingCart')}
             title={`Panier (${totalItems} articles)`}
           >
@@ -123,7 +117,7 @@ const Navbar: React.FC = () => {
               alt="Caddie" 
               style={{ width: 20, height: 20 }} 
             />
-          </Button>
+          </button>
 
           {totalItems > 0 && (
             <span

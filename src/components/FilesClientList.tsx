@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import CommandeModal from './CommandeModal';
-import { Modele3DClient, FileClientListResponse } from '../types/FileClientData';
+import { Modele3DClient } from '../types/FileClientData';
 import { useAuth } from '../hooks/useAuth';
 import { filesClientService } from '../services/filesClient.service';
 
 interface FilesClientListProps {
   showAllFiles?: boolean;
-  onFileSelect?: (file: Modele3DClient) => void;
-  onVerificationUpdate?: () => void;
 }
 
 const FilesClientList: React.FC<FilesClientListProps> = ({
   showAllFiles = false,
-  onFileSelect,
-  onVerificationUpdate
 }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -42,7 +38,7 @@ const FilesClientList: React.FC<FilesClientListProps> = ({
       
       if (response.success) {
         // ✅ Vérification plus flexible des propriétés
-        const filesList = response.data || response.files || [];
+        const filesList = response.data || [];
         setFiles(filesList);
       } else {
         throw new Error(response.message || 'Erreur lors du chargement des fichiers');
@@ -74,12 +70,7 @@ const FilesClientList: React.FC<FilesClientListProps> = ({
   // ✅ Fonction pour vérifier si un fichier peut être commandé
   const canOrderFile = (file: Modele3DClient): boolean => {
     // ✅ Conversion plus robuste pour estVerifie
-    const isVerified = file.estVerifie === true;
-    
-    return file.prix && 
-           parseFloat(file.prix) > 0;
-          //   isVerified && 
-          //  (file.statut === 'pret_impression' || file.statut === 'pret') && 
+    return !!(file.prix && parseFloat(file.prix) > 0);
   };
 
   // ✅ Fonction pour commander un modèle

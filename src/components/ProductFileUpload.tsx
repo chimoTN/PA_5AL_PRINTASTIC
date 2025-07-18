@@ -1,6 +1,6 @@
 // src/components/ProductFileUpload.tsx
 import React, { useState, useRef, DragEvent, ChangeEvent, useEffect } from 'react';
-import { type FileClientUploadResponse, FileClientUploadData } from '../services/filesClient.service';
+import { FileClientUploadData } from '../services/filesClient.service';
 import { useAuth } from '../hooks/useAuth';
 import type { Material } from '../services/materials.service';
 import '../assets/styles/FileUpload.css';
@@ -8,7 +8,7 @@ import { filesClientService } from '../services/filesClient.service';
 import { useMaterials } from '../hooks/useMateriaux';
 
 interface ProductFileUploadProps {
-  onUploadSuccess?: (response: FileClientUploadResponse) => void;
+  onUploadSuccess?: (response: any) => void; // Changed from FileClientUploadResponse
   onUploadError?: (error: string) => void;
 }
 
@@ -24,7 +24,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
   onUploadError 
 }) => {
   // ✅ CORRECTION : Utiliser useMaterials au lieu de useMateriaux
-  const { isAuthenticated, authLoading, refreshAuth } = useAuth();
+  const { isAuthenticated, refreshAuth } = useAuth();
   const { materials, loading: materialsLoading, loadMaterials } = useMaterials(); // ✅ Correction
   
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -60,7 +60,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
     // console.log('- Auth Loading:', authLoading);
     // console.log('- Is Authenticated:', isAuthenticated);
     // console.log('- Materials:', materials.length);
-  }, [authLoading, isAuthenticated, materials]);
+  }, [isAuthenticated, materials]);
 
   // Validation du fichier
   const validateFile = (file: File): string[] => {
@@ -240,7 +240,7 @@ const ProductFileUpload: React.FC<ProductFileUploadProps> = ({
   };
 
   // Affichage pendant le chargement de l'authentification
-  if (authLoading) {
+  if (false) { // authLoading n'existe pas dans useAuth
     return (
       <div className="file-upload-container">
         <div className="loading-auth">

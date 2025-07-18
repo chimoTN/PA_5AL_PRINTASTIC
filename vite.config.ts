@@ -10,6 +10,22 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  build: {
+    outDir: 'dist',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          ui: ['react-bootstrap', 'bootstrap'],
+          charts: ['recharts'],
+          three: ['three', '@react-three/fiber', '@react-three/drei']
+        }
+      }
+    }
+  },
   server: {
     port: 5173,
     host: 'localhost',
@@ -21,4 +37,8 @@ export default defineConfig({
       },
     },
   },
+  preview: {
+    port: process.env.PORT ? parseInt(process.env.PORT) : 4173,
+    host: '0.0.0.0'
+  }
 });

@@ -1,5 +1,5 @@
 import { useCart } from '../hooks/useSoppingCart';
-import { Container, Row, Col, Button, Card, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form } from 'react-bootstrap';
 import poubelle from '../assets/images/poubelle.png';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -72,16 +72,16 @@ const CartPage = () => {
                       </div>
                     </Col>
                     <Col xs={3} className="text-end">
-                      <Button variant="danger" onClick={() => removeFromCart(item.id)}>
+                      <button type="button" className="btn btn-danger" onClick={() => removeFromCart(item.id)}>
                         <img src={poubelle} alt="remove" style={{ width: 20, height: 20 }} />
-                      </Button>
+                      </button>
                     </Col>
                   </Row>
                 </div>
               ))}
-              <Button variant="secondary" onClick={clearCart} className="mt-3">
+              <button type="button" className="btn btn-secondary mt-3" onClick={clearCart}>
                 Vider le panier
-              </Button>
+              </button>
             </>
           )}
         </Card>
@@ -98,14 +98,14 @@ const CartPage = () => {
         >
           <h3>Prix total</h3>
           <p style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>{total.toFixed(2)} €</p>
-          <Button 
-            variant="primary" 
-            className="mt-3"
+          <button
+            type="button"
+            className="btn btn-primary mt-3"
             onClick={() => navigate(`/validation/panier`)}
             disabled={isDisabled}
           >
             Passer commande
-          </Button>
+          </button>
         </Card>
       </div>
     </Container>

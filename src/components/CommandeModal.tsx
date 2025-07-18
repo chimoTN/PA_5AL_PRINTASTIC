@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Form, Row, Col, Alert, Card } from 'react-bootstrap';
 import { CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { paiementService } from '../services/paiementService';
-import { Modele3DClient } from '../services';
+import { Modele3DClient } from '../types/FileClientData';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
 import { loadStripe } from '@stripe/stripe-js';
 import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
 import { Elements } from '@stripe/react-stripe-js';
-import { filesClientService } from '../services/filesClient.service';
 
 const stripePromise = loadStripe(REACT_APP_STRIPE_PUBLISHABLE_KEY); // Mets ta clé publique ici
 

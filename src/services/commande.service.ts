@@ -1,7 +1,7 @@
 // src/services/commande.service.ts
 import { baseService, ApiResponse } from './base.service';
 
-import axios, { AxiosResponse } from 'axios';
+import axios from 'axios';
 import { API_BASE_URL } from '../config/env';
 
 // ✅ Interfaces TypeScript pour la commande

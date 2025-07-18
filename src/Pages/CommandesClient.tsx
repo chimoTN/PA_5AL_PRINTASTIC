@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   Badge,
-  Button,
   Card,
   Container,
   ListGroup,
@@ -10,7 +9,6 @@ import {
   Form,
   Alert,
 } from 'react-bootstrap';
-import { loadStripe } from '@stripe/stripe-js';
 import { commandeService } from '../services/commande.service';
 import reclamationService from '../services/reclamation.service';
 import { useAuth } from '../hooks/useAuth';
@@ -19,8 +17,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import FacturePDFGenerator from '../utilis/pdf/FacturePDFGenerator';
 import { filesClientService } from '../services/filesClient.service';
 import { paiementService } from '../services/paiementService';
-
-const stripePromise = loadStripe('pk_test_51RbQFLIPwrA3cz1VnsMIcmzz0oxAzJ78wR0Qh18WLVdfXDTTNeYaFS87PFVSRyo8lTvyxgs0vOyqQuWzgdRdehhS00W1CoJzoq');
 
 const statutColors: Record<string, string> = {
   'en_attente': 'warning',
@@ -134,7 +130,6 @@ const CommandesClient = () => {
   const [selectedDetailId, setSelectedDetailId] = useState<number | null>(null);
   const [reason, setReason] = useState('');
   const [selectedLibelle, setSelectedLibelle] = useState('');
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [expandedCommande, setExpandedCommande] = useState<number | null>(null);
   const [stripePaiement, setStripePaiement] = useState<any | null>(null);
   const [modeles3D, setModeles3D] = useState<{ [id: number]: any }>({});
@@ -206,41 +201,6 @@ const CommandesClient = () => {
       })
        .finally(() => setLoading(false));
   }, [user]);
-
-  const annulerProduit = (idDetailCommande: number) => {
-    commandeService
-      .changerStatutDetailCommande(idDetailCommande, 'annulé')
-      .then(() => {
-        setCommandes((prev) =>
-          prev.map((c) => ({
-            ...c,
-            detailCommandes: c.detailCommandes.map((d: any) =>
-              d.id === idDetailCommande ? { ...d, statut: 'annulé' } : d
-            ),
-          }))
-        );
-      })
-      .catch((err) => console.error('Erreur annulation :', err));
-  };
-
-  const openSignalModal = (detailId: number) => {
-    setSelectedDetailId(detailId);
-    setReason('');
-    setShowModal(true);
-  };
-
-const handleSignalSubmit = async () => {
-  if (!selectedLibelle || !reason.trim()) {
-    toast.error('Merci de sélectionner une raison et de décrire le problème');
-    return;
-  }
-  // appel du service
-  await reclamationService.createReclamation({
-    detailCommandeId: selectedDetailId!,
-    libelle: selectedLibelle,
-    description: reason,
-  });
-};
 
   const toggleCommandeDetails = (commandeId: number) => {
     setExpandedCommande(expandedCommande === commandeId ? null : commandeId);
@@ -562,7 +522,26 @@ const handleSignalSubmit = async () => {
           </CustomButton>
           <CustomButton
             variant="primary"
-            onClick={handleSignalSubmit}
+            onClick={() => {
+              if (!selectedLibelle || !reason.trim()) {
+                toast.error('Merci de sélectionner une raison et de décrire le problème');
+                return;
+              }
+              // appel du service
+              reclamationService.createReclamation({
+                detailCommandeId: selectedDetailId!,
+                libelle: selectedLibelle,
+                description: reason,
+              }).then(() => {
+                toast.success('Réclamation créée avec succès !');
+                setShowModal(false);
+                setSelectedDetailId(null);
+                setReason('');
+                setSelectedLibelle('');
+              }).catch(() => {
+                toast.error('Erreur lors de la création de la réclamation.');
+              });
+            }}
             disabled={!reason.trim()}
           >
             Faire une réclamation
