@@ -11,7 +11,6 @@ import '@/assets/styles/FileUpload.css';
 import '@/assets/styles/gestionProduits.css';
 import '@/assets/styles/global.css';
 import '@/assets/styles/productDetail.css';
-import '@/assets/styles/ProfilePage.css';
 import '@/assets/styles/UserFiles.css';
 
 import App from './App.tsx'
