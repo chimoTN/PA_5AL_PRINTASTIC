@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { imprimeurService } from '../../services/imprimeur.service';
 import { useAuth } from '../../hooks/useAuth';
-import { API_BASE_URL } from '../config/env';
+import { API_BASE_URL } from '@/config/env';
 
 interface Demande {
   id: number;

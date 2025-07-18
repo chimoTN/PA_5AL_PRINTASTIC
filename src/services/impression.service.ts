@@ -1,7 +1,7 @@
 // src/services/impression.service.ts
 import axios, { AxiosResponse } from 'axios';
 
-import { API_BASE_URL } from '../config/env';
+import { API_BASE_URL } from '@/config/env';
 
 export const impressionService = {
   /**

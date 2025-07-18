@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_BASE_URL } from '../config/env';
+import { API_BASE_URL } from '@/config/env';
 
 // ✅ Types TypeScript pour les APIs
 export interface CommandeModele3D {
