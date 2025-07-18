@@ -384,6 +384,29 @@ const FilesClientList: React.FC<FilesClientListProps> = ({
                 </div>
               </div>
 
+              {/* Détail du pricing si présent */}
+              {file.pricing && (
+                <div style={{ marginTop: '10px', background: '#f8f9fa', borderRadius: 6, padding: 10 }}>
+                  <h5 style={{ marginBottom: 8 }}>Détail du prix</h5>
+                  <ul style={{ fontSize: 13, marginBottom: 0 }}>
+                    <li><strong>Coût matière :</strong> {file.pricing.breakdown.coutMatiere.toFixed(2)} €</li>
+                    <li><strong>Coût supports :</strong> {file.pricing.breakdown.coutSupports.toFixed(2)} €</li>
+                    <li><strong>Électricité :</strong> {file.pricing.breakdown.coutElectricite.toFixed(2)} €</li>
+                    <li><strong>Usure machine :</strong> {file.pricing.breakdown.coutUsureMachine.toFixed(2)} €</li>
+                    <li><strong>Expédition :</strong> {file.pricing.breakdown.coutExpedition.toFixed(2)} €</li>
+                    <li><strong>Marge imprimeur :</strong> {file.pricing.breakdown.margeImprimeur.toFixed(2)} €</li>
+                    <li><strong>Marge plateforme :</strong> {file.pricing.breakdown.margePlateforme.toFixed(2)} €</li>
+                    <li><strong>Prix HT :</strong> {file.pricing.breakdown.prixHT.toFixed(2)} €</li>
+                    <li><strong>TVA :</strong> {file.pricing.breakdown.tva.toFixed(2)} €</li>
+                    <li><strong>Prix TTC :</strong> {file.pricing.breakdown.prixTTC.toFixed(2)} €</li>
+                  </ul>
+                  {/* Affichage analyse */}
+                  <div style={{ marginTop: 8, fontSize: 12, color: '#555' }}>
+                    <strong>Analyse :</strong> {file.pricing.analyse.materiauNom}, {file.pricing.analyse.volume.toFixed(2)} cm³, {file.pricing.analyse.tauxRemplissage}% remplissage, {file.pricing.analyse.poidsMatiere.toFixed(2)} g
+                  </div>
+                </div>
+              )}
+
               {/* Informations sur les supports */}
               {file.necessiteSupports && (
                 <div style={{

@@ -67,6 +67,26 @@ interface CommandeData {
         nom: string;
         couleur?: string;
       };
+      pricing?: {
+        breakdown: {
+          coutMatiere: number;
+          coutSupports: number;
+          coutElectricite: number;
+          coutUsureMachine: number;
+          coutExpedition: number;
+          margeImprimeur: number;
+          margePlateforme: number;
+          prixHT: number;
+          tva: number;
+          prixTTC: number;
+        };
+        analyse: {
+          materiauNom: string;
+          volume: number;
+          tauxRemplissage: number;
+          poidsMatiere: number;
+        };
+      };
     } | null;
     modele3dClientId?: number; // Added for fetching model details
   }>;
@@ -429,6 +449,28 @@ const handleSignalSubmit = async () => {
                                 ({(detail.modele3DClient.fichier3D.tailleFichier / 1024 / 1024).toFixed(2)} MB)
                               </span>
                             )}
+                          </div>
+                        </div>
+                      )}
+                      {/* Détail du pricing si présent */}
+                      {detail.modele3DClient?.pricing && (
+                        <div style={{ marginTop: '10px', background: '#f8f9fa', borderRadius: 6, padding: 10 }}>
+                          <h5 style={{ marginBottom: 8 }}>Détail du prix</h5>
+                          <ul style={{ fontSize: 13, marginBottom: 0 }}>
+                            <li><strong>Coût matière :</strong> {detail.modele3DClient.pricing.breakdown.coutMatiere.toFixed(2)} €</li>
+                            <li><strong>Coût supports :</strong> {detail.modele3DClient.pricing.breakdown.coutSupports.toFixed(2)} €</li>
+                            <li><strong>Électricité :</strong> {detail.modele3DClient.pricing.breakdown.coutElectricite.toFixed(2)} €</li>
+                            <li><strong>Usure machine :</strong> {detail.modele3DClient.pricing.breakdown.coutUsureMachine.toFixed(2)} €</li>
+                            <li><strong>Expédition :</strong> {detail.modele3DClient.pricing.breakdown.coutExpedition.toFixed(2)} €</li>
+                            <li><strong>Marge imprimeur :</strong> {detail.modele3DClient.pricing.breakdown.margeImprimeur.toFixed(2)} €</li>
+                            <li><strong>Marge plateforme :</strong> {detail.modele3DClient.pricing.breakdown.margePlateforme.toFixed(2)} €</li>
+                            <li><strong>Prix HT :</strong> {detail.modele3DClient.pricing.breakdown.prixHT.toFixed(2)} €</li>
+                            <li><strong>TVA :</strong> {detail.modele3DClient.pricing.breakdown.tva.toFixed(2)} €</li>
+                            <li><strong>Prix TTC :</strong> {detail.modele3DClient.pricing.breakdown.prixTTC.toFixed(2)} €</li>
+                          </ul>
+                          {/* Affichage analyse */}
+                          <div style={{ marginTop: 8, fontSize: 12, color: '#555' }}>
+                            <strong>Analyse :</strong> {detail.modele3DClient.pricing.analyse.materiauNom}, {detail.modele3DClient.pricing.analyse.volume.toFixed(2)} cm³, {detail.modele3DClient.pricing.analyse.tauxRemplissage}% remplissage, {detail.modele3DClient.pricing.analyse.poidsMatiere.toFixed(2)} g
                           </div>
                         </div>
                       )}

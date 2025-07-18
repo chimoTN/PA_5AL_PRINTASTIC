@@ -14,6 +14,49 @@ interface Materiau {
   prixParGramme: string;
 }
 
+// Ajout des types pour pricing
+export interface PricingAnalyse {
+  materiauNom: string;
+  prixParGramme: number;
+  volume: number;
+  tauxRemplissage: number;
+  necessiteSupports: boolean;
+  poidsMatiere: number;
+}
+
+export interface PricingBreakdown {
+  coutMatiere: number;
+  coutSupports: number;
+  coutElectricite: number;
+  coutUsureMachine: number;
+  coutTotalMatiere: number;
+  coutExpedition: number;
+  expeditionDetails: {
+    coutBase: number;
+    assurance: number;
+    suivi: number;
+    methodeExpedition: string;
+    destination: string;
+    poids: number;
+    facteurInternational: number;
+  };
+  coutBase: number;
+  margeImprimeur: number;
+  margePlateforme: number;
+  prixHT: number;
+  tva: number;
+  prixTTC: number;
+}
+
+export interface Pricing {
+  coutMateriau: number;
+  coutExpedition: number;
+  prixHT: number;
+  prixTTC: number;
+  analyse: PricingAnalyse;
+  breakdown: PricingBreakdown;
+}
+
 // ✅ Interface principale pour le modèle 3D client
 export interface Modele3DClient {
   id: number;
@@ -46,6 +89,8 @@ export interface Modele3DClient {
   dateVerification: string | null;
   fichier3D: Fichier3D;
   materiau: Materiau;
+  // Ajout du pricing
+  pricing?: Pricing;
 }
 
 // ✅ Interface pour la pagination
