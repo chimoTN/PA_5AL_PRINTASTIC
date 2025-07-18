@@ -22,7 +22,7 @@ const reclamationService = {
    * Récupère une réclamation par son ID
    * @param {number} id
    */
-  async getReclamationById(id) {
+  async getReclamationById(id: number) {
     try {
       const res = await axios.get(`${API_BASE_URL}/reclamations/${id}`);
       return res.data; // { success: true, data: { ... } }

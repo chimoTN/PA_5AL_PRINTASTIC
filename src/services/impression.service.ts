@@ -1,7 +1,7 @@
 // src/services/impression.service.ts
 import axios, { AxiosResponse } from 'axios';
 
-import { API_BASE_URL } from '@/config/env';
+import { API_BASE_URL } from '../config/env';
 
 export const impressionService = {
   /**
@@ -17,7 +17,7 @@ export const impressionService = {
    * @param idsDetailCommandes Liste des ID de détails à prendre
    * @param userID L’ID de l’imprimeur envoyé dans le body (et non les headers)
    */
-  async prendreCommandes(idsDetailCommandes, userID) {
+  async prendreCommandes(idsDetailCommandes : number[], userID : number) {
     const res: AxiosResponse = await axios.post(
       `${API_BASE_URL}/impression/prendre`,
       { idsDetailCommandes, userID } // ✅ envoi dans le body
@@ -30,7 +30,7 @@ export const impressionService = {
    * Récupère les détails de commandes déjà acceptés par l’imprimeur
    * @param userID L’ID de l’imprimeur
    */
-  async getCommandesImprimeur(userID) {
+  async getCommandesImprimeur(userID:number) {
     const res: AxiosResponse = await axios.get(`${API_BASE_URL}/impression/imprimeur/${userID}`);
     return res.data;
   }
