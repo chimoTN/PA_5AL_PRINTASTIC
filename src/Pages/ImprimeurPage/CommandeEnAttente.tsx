@@ -13,6 +13,7 @@ import {
 import { impressionService } from '../../services/impression.service';
 import { useAuth } from '../../hooks/useAuth';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
+import { API_BASE_URL } from '../../config/env';
 
 const statutColors: Record<string, string> = {
   'en attente': 'secondary',
@@ -168,7 +169,7 @@ const CommandeEnAttente = () => {
                   <tr key={order.id}>
                     <td>
                       <Image
-                        src={`http://localhost:3000/${order.produit?.imageUrl}`}
+                        src={`${API_BASE_URL}/${order.produit?.imageUrl}`}
                         alt={order.produit?.nom}
                         thumbnail
                         style={{ width: '60px' }}

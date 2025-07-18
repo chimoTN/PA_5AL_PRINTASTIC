@@ -7,6 +7,7 @@ import { signalementService } from '../../services/signalement.service';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { TypeSignalement } from '../../types/Signalement';
+import { API_BASE_URL } from '../../config/env';
 
 const CommandEnCours = () => {
   const [acceptedOrders, setAcceptedOrders] = useState([]);
@@ -167,7 +168,7 @@ const CommandEnCours = () => {
                     <tr key={order.id}>
                       <td>
                         <Image
-                          src={`http://localhost:3000/${order.produit?.imageUrl}`}
+                          src={`${API_BASE_URL}/${order.produit?.imageUrl}`}
                           alt="visuel"
                           thumbnail
                           style={{ width: '60px' }}
@@ -210,7 +211,7 @@ const CommandEnCours = () => {
                     className="btn-sm"
                     variant="outline-secondary"
                     disabled={isExpedie}
-                    href={`http://localhost:3000/${selectedOrder.produit?.fichier3d.cheminFichier}`}
+                    href={`${API_BASE_URL}/${selectedOrder.produit?.fichier3d.cheminFichier}`}
                     download={`modele-${selectedOrder.id}.${selectedOrder.produit?.fichier3d.format}`}
                   >
                     Télécharger le modèle 3D
