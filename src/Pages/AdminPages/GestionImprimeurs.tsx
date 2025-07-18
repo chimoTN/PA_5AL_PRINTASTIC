@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { imprimeurService } from '../../services/imprimeur.service';
 import { useAuth } from '../../hooks/useAuth';
+import { API_BASE_URL } from '@/config/env';
 
 interface Demande {
   id: number;
@@ -120,7 +121,7 @@ const GestionImprimeurs: React.FC = () => {
                       {d.sampleFile && (
                         <p>
                           <strong>Fichier échantillon :</strong>{' '}
-                          <a href={`http://localhost:3000/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
+                          <a href={`${API_BASE_URL}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
                             📎 Voir le fichier
                           </a>
                         </p>
@@ -200,7 +201,7 @@ const GestionImprimeurs: React.FC = () => {
                       {d.sampleFile && (
                         <p>
                           <strong>Fichier échantillon :</strong>{' '}
-                          <a href={`http://localhost:3000/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
+                          <a href={`${API_BASE_URL}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
                             📎 Voir le fichier
                           </a>
                         </p>

@@ -1,7 +1,6 @@
 // src/services/reclamation.service.js
 import axios from 'axios';
-
-const API_URL = 'http://localhost:3000/api/reclamations';
+import { API_BASE_URL } from '../config/env';
 
 const reclamationService = {
   /**
@@ -9,9 +8,9 @@ const reclamationService = {
    * @param {{ detailCommandeId: number; libelle: string; description: string; imageFile?: File }} payload
    */
 
-  async createReclamation(payload) {
+  async createReclamation(payload: { detailCommandeId: number; libelle: string; description: string; imageFile?: File }) {
     try {
-      const res = await axios.post(`${API_URL}/faire-une-reclamation`, payload);
+      const res = await axios.post(`${API_BASE_URL}/reclamations/faire-une-reclamation`, payload);
       return res.data;
     } catch (err) {
       console.error('❌ Erreur API création réclamation :', err);
@@ -25,7 +24,7 @@ const reclamationService = {
    */
   async getReclamationById(id) {
     try {
-      const res = await axios.get(`${API_URL}/${id}`);
+      const res = await axios.get(`${API_BASE_URL}/reclamations/${id}`);
       return res.data; // { success: true, data: { ... } }
     } catch (err) {
       console.error(`❌ Erreur API récupération réclamation #${id} :`, err);
@@ -38,7 +37,7 @@ const reclamationService = {
    */
   async getAllReclamations() {
     try {
-      const res = await axios.get(API_URL);
+      const res = await axios.get(`${API_BASE_URL}/reclamations/getAll`);
       return res.data; 
     } catch (err) {
       console.error('❌ Erreur API récupération réclamations :', err);

@@ -1,8 +1,6 @@
 // src/services/user.service.ts
 import axios from 'axios';
-
-const API_URL = 'http://localhost:3000/api/auth';
-const API_URL_IMPRIMEUR = 'http://localhost:3000/api/imprimeur';
+import { API_BASE_URL } from '@/config/env';
 
 export interface NewUser  {
   nom: string;
@@ -15,7 +13,7 @@ export const userService = {
 
   async inscription(data: NewUser): Promise<any> {
     try {
-      const response = await axios.post(`${API_URL}/inscription`, data);
+      const response = await axios.post(`${API_BASE_URL}/auth/inscription`, data);
       return response.data;
     } catch (err) {
       console.error('❌ Erreur API inscription:', err);
@@ -26,7 +24,7 @@ export const userService = {
   async inscriptionImprimeur(payload) {
     try {
       const response = await axios.post(
-        `${API_URL_IMPRIMEUR}/inscription/imprimeur`,
+        `${API_BASE_URL}/imprimeur/inscription/imprimeur`,
         payload
       );
       return response.data; // { success: true, data: { requestId, status } }
@@ -44,7 +42,7 @@ export const userService = {
   async modifierUtilisateur(id, data) {
     try {
       const response = await axios.put(
-        `${API_URL}/utilisateurs/${id}`,
+        `${API_BASE_URL}/auth/utilisateurs/${id}`,
         data,
         { withCredentials: true }  // si tu utilises des cookies de session
       );
