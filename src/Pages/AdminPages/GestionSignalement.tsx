@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import TableauSignalements from '../../components/TableauSignalements';
 import { signalementService } from '../../services/signalement.service';
-import reclamationService from '../../Services/reclamation.service ';
+import reclamationService from '../../services/reclamation.service';
 import TableauReclamation from '../../components/TableauReclamation';
 
 interface Ligne {

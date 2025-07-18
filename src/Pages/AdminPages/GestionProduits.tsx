@@ -1,6 +1,6 @@
 // GestionProduits.tsx
 import React, { useEffect, useState } from 'react';
-import { produitService } from '../../Services/produit.service';
+import { produitService } from '../../services/produit.service';
 import '@/assets/styles/gestionProduits.css'
 
 const GestionProduits: React.FC = () => {
