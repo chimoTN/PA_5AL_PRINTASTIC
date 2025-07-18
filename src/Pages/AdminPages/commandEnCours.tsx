@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Badge } from 'react-bootstrap';
-import { commandeService } from '../../Services/commande.service';
+import { commandeService } from '../../services/commande.service';
 
 interface ProduitCommande {
   id: number;

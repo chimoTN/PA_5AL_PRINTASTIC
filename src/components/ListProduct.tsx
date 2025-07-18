@@ -2,7 +2,7 @@
 import ProductCard from "./ProductCard";
 import type { Produit } from "../types/Produit";
 import { useEffect, useState } from "react";
-import { produitService } from "../Services/produit.service";
+import { produitService } from "../services/produit.service";
 import { Spinner } from 'react-bootstrap';
 
 export const ProductList = () => {
