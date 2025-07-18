@@ -21,7 +21,7 @@ export const userService = {
     }
   },
 
-  async inscriptionImprimeur(payload) {
+  async inscriptionImprimeur(payload: any) {
     try {
       const response = await axios.post(
         `${API_BASE_URL}/imprimeur/inscription/imprimeur`,
@@ -39,7 +39,7 @@ export const userService = {
    * @param {number} id          ID de l'utilisateur à modifier
    * @param {object} data        { email, motDePasse, nom, prenom, role }
    */
-  async modifierUtilisateur(id, data) {
+  async modifierUtilisateur(id: number, data: any) {
     try {
       const response = await axios.put(
         `${API_BASE_URL}/auth/utilisateurs/${id}`,
