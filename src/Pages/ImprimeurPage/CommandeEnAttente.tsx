@@ -13,7 +13,6 @@ import {
 import { impressionService } from '../../services/impression.service';
 import { useAuth } from '../../hooks/useAuth';
 import { FaSort, FaSortUp, FaSortDown } from 'react-icons/fa';
-import { API_BASE_URL } from '../../config/env';
 
 const statutColors: Record<string, string> = {
   'en attente': 'secondary',
@@ -30,6 +29,8 @@ const CommandeEnAttente = () => {
   const [search, setSearch] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('plus_recentes');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+ 
+ const API_BACK = import.meta.env.API_BACK_SANS;
 
   useEffect(() => {
     if (user?.id) {
@@ -169,7 +170,7 @@ const CommandeEnAttente = () => {
                   <tr key={order.id}>
                     <td>
                       <Image
-                        src={`${API_BASE_URL}/${order.produit?.imageUrl}`}
+                        src={`${API_BACK}/${order.produit?.imageUrl}`}
                         alt={order.produit?.nom}
                         thumbnail
                         style={{ width: '60px' }}

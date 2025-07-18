@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import '../assets/styles/Navbar.css';
+import '@/assets/styles/Navbar.css';
 import caddie from '../assets/images/caddie.png';
 import { Button } from 'react-bootstrap';
 import { useCart } from '../hooks/useSoppingCart';
