@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { loadStripe } from '@stripe/stripe-js';
 import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
 import { Elements } from '@stripe/react-stripe-js';
+import { filesClientService } from '../services/filesClient.service';
 
 const stripePromise = loadStripe(REACT_APP_STRIPE_PUBLISHABLE_KEY); // Mets ta clé publique ici
 

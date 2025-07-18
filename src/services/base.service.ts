@@ -87,13 +87,9 @@ class BaseService {
     return { ...defaultHeaders, ...customHeaders };
   }
 
-  private buildUrl(endpoint: string): string {
-    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    const finalUrl = `${this.baseURL}${cleanEndpoint}`;
-    
-    console.log('🌐 URL:', finalUrl);
-    
-    return finalUrl;
+  buildUrl(endpoint: string): string {
+    const cleanEndpoint: string = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    return `${API_BASE_URL}${cleanEndpoint}`;
   }
 
   async request<T = any>(

@@ -52,4 +52,9 @@ export const paiementService = {
   async enregistrerPaiement(paiementData: PaiementData) {
     return baseService.post('/auth/paiement', paiementData);
   },
+
+  // ✅ Récupérer les infos Stripe d'une commande
+  async getStripePaiementByCommandeId(commandeId: number) {
+    return baseService.get(`/commandes/${commandeId}/paiement-stripe`);
+  },
 };

@@ -58,8 +58,8 @@ const Navbar: React.FC = () => {
                   Profil
                 </Link>
                 <Link to="/commande" className="navbar-item">
-                  <i className="fas fa-user"></i>
-                  commande
+                  <i className="fas fa-list"></i>
+                  Mes commandes
                 </Link>
               </>
             )}
