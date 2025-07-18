@@ -12,7 +12,7 @@ import {
 } from 'react-bootstrap';
 import { loadStripe } from '@stripe/stripe-js';
 import { commandeService } from '../services/commande.service';
-import reclamationService from '../services/reclamation.service ';
+import reclamationService from '../services/reclamation.service';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';

@@ -2,7 +2,7 @@
 import { baseService, ApiResponse } from './base.service';
 
 import axios, { AxiosResponse } from 'axios';
-import { API_BASE_URL } from '@/config/env';
+import { API_BASE_URL } from '../config/env';
 
 // ✅ Interfaces TypeScript pour la commande
 export interface DetailCommande {
