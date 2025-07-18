@@ -76,7 +76,9 @@ export const AuthProvider: React.FC<{children: ReactNode}> = ({ children }) => {
       setIsAuthenticated(false);
       
       // ✅ IMPORTANT : Rethrow pour que LoginPage puisse récupérer l'erreur
-      throw error;
+      const err = new Error(error.message || 'Erreur de connexion');
+      if (error.stack) err.stack = error.stack;
+      throw err;
     } finally {
       setIsLoading(false);
     }

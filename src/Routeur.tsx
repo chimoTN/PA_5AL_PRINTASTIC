@@ -15,6 +15,7 @@ import DashboardImpression from './Pages/DashboardImpression';
 import Navbar from './components/Navbar';
 import CommandesClient from './Pages/CommandesClient';
 import InscriptionPage from './Pages/InscriptionPage';
+import CompteSuspendu from './Pages/CompteSuspendu';
 
 export const Routeur = () => (
   <Router>
@@ -23,6 +24,7 @@ export const Routeur = () => (
       <Routes>
         <Route path="/" element={<Accueil />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/compte-suspendu" element={<CompteSuspendu />} />
 
         {/* accessibles sans auth */}
         <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />
@@ -33,7 +35,7 @@ export const Routeur = () => (
         <Route
           path="/validation/Panier"
           element={
-            <RoleProtectedRoute roles={['CLIENT', 'ADMIN', 'IMPRIMEUR']}>
+            <RoleProtectedRoute roles={['CLIENT', 'PROPRIETAIRE', 'IMPRIMEUR']}>
               <CheckoutPage />
             </RoleProtectedRoute>
           }

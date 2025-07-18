@@ -2,11 +2,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { Modal } from 'react-bootstrap';
+import { Modal, Alert } from 'react-bootstrap';
 import { toast } from 'sonner';
 import image from '../assets/images/imageConnexion.jpg';
 import '../assets/styles/LoginPage.css';
-import { authService } from '../services';
 import { userService } from '../services/user.service';
 
 const LoginPage = () => {
@@ -65,8 +64,36 @@ const LoginPage = () => {
     
 
     } catch (error: any) {
+      console.error('Erreur attrapée dans le catch:', error);
+      // Gestion robuste du message de compte suspendu/banni
+      const errorMessage =
+        error?.response?.data?.message || // message backend (HTTP 403)
+        error?.message ||                 // JS Error
+        '';
+      if (errorMessage.includes('Votre compte a été suspendu ou banni')) {
+        navigate('/compte-suspendu', { replace: true });
+        return;
+      }
+      console.error('error.message:', error.message);
+      console.error('error.stack:', error.stack);
       console.error('❌ Erreur lors de la connexion:', error);
-      
+
+      // Redirection si compte suspendu/banni (message ou stack)
+      const errorResponseStack = error.response?.data?.stack || '';
+      const errorResponseMessage = error.response?.data?.message || '';
+      const errorString = error.toString();
+
+      if (
+        errorMessage.includes('Votre compte a été suspendu ou banni') ||
+        error.stack?.includes('Votre compte a été suspendu ou banni') ||
+        errorResponseStack.includes('Votre compte a été suspendu ou banni') ||
+        errorResponseMessage.includes('Votre compte a été suspendu ou banni') ||
+        errorString.includes('Votre compte a été suspendu ou banni')
+      ) {
+        navigate('/compte-suspendu', { replace: true });
+        return;
+      }
+
       if (error.message?.includes('401') || error.message?.includes('authentifié')) {
         setError('Email ou mot de passe incorrect');
       } else if (error.message?.includes('réseau') || error.message?.includes('serveur')) {
