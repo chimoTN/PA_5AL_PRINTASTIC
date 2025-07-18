@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Button as BootstrapButton, Row, Col, Alert, Card } from 'react-bootstrap';
-import { Elements, CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { commandeService } from '../services/commande.service';
+import { Modal, Form, Row, Col, Alert, Card } from 'react-bootstrap';
+import { CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { paiementService } from '../services/paiementService';
-import { loadStripe } from '@stripe/stripe-js';
-import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
 import { Modele3DClient } from '../services';
 import { useAuth } from '../hooks/useAuth';
 import { toast } from 'sonner';
+import { loadStripe } from '@stripe/stripe-js';
+import { REACT_APP_STRIPE_PUBLISHABLE_KEY } from '../config/env';
+import { Elements } from '@stripe/react-stripe-js';
 
-const stripePromise = loadStripe(REACT_APP_STRIPE_PUBLISHABLE_KEY);
+const stripePromise = loadStripe(REACT_APP_STRIPE_PUBLISHABLE_KEY); // Mets ta clé publique ici
 
 interface CommandeModalProps {
   show: boolean;
@@ -52,7 +52,7 @@ const CommandeForm: React.FC<{
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ✅ Calculs de prix
-  const prixUnitaire = file?.prix || 0;
+  const prixUnitaire = Number(file?.prix) || 0;
   const prixTotal = prixUnitaire * quantite;
 
   // ✅ Validation de l'adresse (comme checkout)
@@ -93,21 +93,31 @@ const CommandeForm: React.FC<{
       return;
     }
 
+    if (!stripe || !elements) {
+      setValidationError('Le service de paiement n\'est pas disponible. Veuillez réessayer plus tard.');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // ✅ 1. Créer le PaymentIntent
+      // 1. Créer le PaymentIntent
       const { clientSecret } = await paiementService.creerPaymentIntent(
-        Math.round(prixTotal * 100)
+        Math.round(prixTotal * 100),
+        user?.email || ''
       );
+      console.log('Réponse PaymentIntent:', clientSecret);
+      if (!clientSecret) {
+        throw new Error("Erreur lors de la création du paiement (PaymentIntent).");
+      }
 
-      // ✅ 2. Confirmer le paiement avec Stripe
-      const cardNumberElement = elements?.getElement(CardNumberElement);
+      // 2. Confirmer le paiement avec Stripe
+      const cardNumberElement = elements.getElement(CardNumberElement);
       if (!cardNumberElement) {
         throw new Error('Élément de carte non trouvé');
       }
 
-      const result = await stripe?.confirmCardPayment(clientSecret, {
+      const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardNumberElement,
           billing_details: {
@@ -123,33 +133,24 @@ const CommandeForm: React.FC<{
           }
         }
       });
+      console.log('Résultat Stripe:', result);
 
       if (result?.error) {
         throw new Error(result.error.message || "Erreur de paiement.");
       }
 
-      // ✅ 3. Enregistrer la commande (style checkout)
+      // 3. Enregistrer la commande avec l'id Stripe du paiement
       if (result?.paymentIntent?.status === 'succeeded') {
-        const response = await paiementService.enregistrerPaiement({
-          prenom: user?.prenom || 'Client',
-          nom: user?.nom || 'Anonyme',
-          email: user?.email || 'client@example.com',
+        console.log('Paiement réussi, création de la commande...');
+        const response = await paiementService.commanderModele3D({
+          modele3dClientId: file.id,
           telephone: telephone,
           adresse: `${address.fullAddress}, ${address.city} ${address.zip}`,
-          prixTotal: prixTotal,
-          stripePaymentId: result.paymentIntent.id,
-          produits: [{
-            id: file.id,
-            nom: file.nom,
-            quantity: quantite,
-            price: prixUnitaire
-          }],
-          utilisateurId: user?.id || 0,
-          typeCommande: 'modele3D', // ✅ Distinction du type
-          instructions: instructions
+          stripePaymentId: result.paymentIntent.id, // On utilise bien l'id Stripe ici
         });
+        console.log('Réponse création commande:', response);
 
-        if (response.status === 201) {
+        if (response.success) {
           // ✅ Son de succès (comme checkout)
           const audio = new Audio('/succes_payment.wav');
           audio.play().catch(() => {}); // Ignore les erreurs audio
@@ -166,7 +167,7 @@ const CommandeForm: React.FC<{
 
           onSuccess();
         } else {
-          throw new Error('Erreur lors de la création de la commande');
+          throw new Error(response.message || 'Erreur lors de la création de la commande');
         }
       }
 
@@ -188,8 +189,22 @@ const CommandeForm: React.FC<{
     setIsCardComplete(cardNumberComplete && cardExpiryComplete && cardCvcComplete);
   }, [cardNumberComplete, cardExpiryComplete, cardCvcComplete]);
 
+  const cancelButtonContent = (
+    <>
+      <i className="fas fa-times me-2"></i>
+      Annuler
+    </>
+  );
+
   return (
     <Form onSubmit={handleSubmit}>
+      {/* ✅ Affichage d'une erreur si Stripe n'est pas chargé */}
+      {(!stripe || !elements) && (
+        <Alert variant="danger" className="mb-3">
+          <i className="fas fa-exclamation-triangle me-2"></i>
+          Le service de paiement Stripe n'est pas disponible. Veuillez vérifier votre connexion ou réessayer plus tard.
+        </Alert>
+      )}
       {/* ✅ Résumé de la commande */}
       <Card className="mb-4">
         <Card.Body>
@@ -314,30 +329,27 @@ const CommandeForm: React.FC<{
           <i className="fas fa-credit-card me-2"></i>
           Informations de paiement
         </Form.Label>
-        
+
         <Row className="mb-3">
           <Col md={12}>
-            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
-              <CardNumberElement
-                onChange={e => setCardNumberComplete(e.complete)}
-              />
+            <Form.Label>Numéro de carte *</Form.Label>
+            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px', minHeight: 40 }}>
+              <CardNumberElement onChange={e => setCardNumberComplete(e.complete)} />
             </div>
           </Col>
         </Row>
-        
+
         <Row className="mb-3">
           <Col md={6}>
-            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
-              <CardExpiryElement
-                onChange={e => setCardExpiryComplete(e.complete)}
-              />
+            <Form.Label>Date d'expiration *</Form.Label>
+            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px', minHeight: 40 }}>
+              <CardExpiryElement onChange={e => setCardExpiryComplete(e.complete)} />
             </div>
           </Col>
           <Col md={6}>
-            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px' }}>
-              <CardCvcElement
-                onChange={e => setCardCvcComplete(e.complete)}
-              />
+            <Form.Label>CVC *</Form.Label>
+            <div style={{ border: '1px solid #ccc', padding: '10px', borderRadius: '4px', minHeight: 40 }}>
+              <CardCvcElement onChange={e => setCardCvcComplete(e.complete)} />
             </div>
           </Col>
         </Row>
@@ -353,18 +365,18 @@ const CommandeForm: React.FC<{
 
       {/* ✅ Boutons */}
       <div className="d-flex justify-content-end gap-2">
-        <BootstrapButton 
-          variant="secondary" 
+        <button
+          type="button"
+          className="btn btn-secondary"
           onClick={onHide}
           disabled={isSubmitting}
         >
-          <i className="fas fa-times me-2"></i>
-          Annuler
-        </BootstrapButton>
+          {cancelButtonContent}
+        </button>
 
-        <BootstrapButton 
+        <button 
           type="submit" 
-          variant="primary"
+          className="btn btn-primary"
           disabled={isSubmitting || !stripe || !isCardComplete || !isAddressValid || !telephone}
         >
           {isSubmitting ? (
@@ -378,13 +390,13 @@ const CommandeForm: React.FC<{
               Commander ({prixTotal.toFixed(2)} €)
             </>
           )}
-        </BootstrapButton>
+        </button>
       </div>
     </Form>
   );
 };
 
-// ✅ Composant Modal (inchangé)
+// ✅ Composant Modal (modifié: PAS de <Elements> ici)
 const CommandeModal: React.FC<CommandeModalProps> = ({ 
   show, 
   onHide, 
@@ -433,6 +445,7 @@ const CommandeModal: React.FC<CommandeModalProps> = ({
           </Alert>
         )}
 
+        {/* PAS de <Elements> ici ! */}
         <Elements stripe={stripePromise}>
           <CommandeForm 
             file={file}

@@ -9,6 +9,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import { commandeService } from '../services/commande.service';
 import { filesClientService } from '../services/filesClient.service';
 import { useAuth } from '../hooks/useAuth';
+import { Modele3DClient } from '../types/FileClientData';
 
 // ✅ Import du CSS
 import '../assets/styles/CommandeModele3D.css';
@@ -60,7 +61,7 @@ interface FormData {
 }
 
 // ✅ Composant principal de formulaire de commande
-const CommandeModele3DForm: React.FC<{ modele: FileClientData }> = ({ modele }) => {
+const CommandeModele3DForm: React.FC<{ modele: Modele3DClient }> = ({ modele }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -110,16 +111,17 @@ const CommandeModele3DForm: React.FC<{ modele: FileClientData }> = ({ modele }) 
     setSuccess('');
 
     try {
-      // ✅ Étape 1 : Créer PaymentIntent
-      console.log('🔄 Création PaymentIntent...');
+      // 1. Créer le PaymentIntent
       const paymentResponse = await commandeService.createPaymentIntent(modele.id);
-
-      if (!paymentResponse.clientSecret) {
-        throw new Error('Erreur lors de la création du paiement');
+      
+      console.log('Réponse PaymentIntent:', paymentResponse);
+      const clientSecret = paymentResponse.clientSecret;
+      if (!clientSecret) {
+        console.log('Erreur lors de la création du paiement:', paymentResponse);
+        throw new Error("Erreur lors de la création du paiement (PaymentIntent).");
       }
 
-      // ✅ Étape 2 : Confirmer le paiement avec Stripe
-      console.log('🔄 Confirmation du paiement...');
+      // 2. Confirmer le paiement avec Stripe
       const cardElement = elements.getElement(CardElement);
 
       if (!cardElement) {
@@ -127,7 +129,7 @@ const CommandeModele3DForm: React.FC<{ modele: FileClientData }> = ({ modele }) 
       }
 
       const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment(
-        paymentResponse.clientSecret,
+        clientSecret,
         {
           payment_method: {
             card: cardElement,
@@ -141,30 +143,29 @@ const CommandeModele3DForm: React.FC<{ modele: FileClientData }> = ({ modele }) 
       );
 
       if (paymentError) {
+        console.log('Erreur lors du paiement:', paymentError);
         throw new Error(paymentError.message || 'Erreur lors du paiement');
       }
 
-      if (paymentIntent.status !== 'succeeded') {
+      if (!paymentIntent || paymentIntent.status !== 'succeeded') {
         throw new Error('Le paiement n\'a pas abouti');
       }
 
-      // ✅ Étape 3 : Créer la commande
-      console.log('🔄 Création de la commande...');
+      // 3. Créer la commande avec l'id Stripe du paiement
       const commandeResponse = await commandeService.createCommandeModele3D({
         modele3dClientId: modele.id,
         telephone: formData.telephone,
         adresse: formData.adresse,
-        stripePaymentId: paymentIntent.id
+        stripePaymentId: paymentIntent.id // <-- c'est l'id Stripe à transmettre
       });
 
       if (commandeResponse.success) {
         setSuccess('Commande créée avec succès !');
-        
-        // ✅ Redirection après succès
         setTimeout(() => {
           navigate('/commandes');
         }, 2000);
       } else {
+        console.log('Erreur lors de la création de la commande:', commandeResponse);
         throw new Error(commandeResponse.message || 'Erreur lors de la création de la commande');
       }
 
@@ -353,7 +354,7 @@ const CommandeModele3D: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [modele, setModele] = useState<FileClientData | null>(null);
+  const [modele, setModele] = useState<Modele3DClient | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 

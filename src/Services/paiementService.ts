@@ -1,5 +1,4 @@
-import axios from 'axios';
-import { API_BASE_URL } from '../config/env';
+import baseService from './base.service';
 
 // ✅ Types TypeScript pour les APIs
 export interface CommandeModele3D {
@@ -28,28 +27,29 @@ export interface PaiementData {
 
 export const paiementService = {
   // 🔸 Appel backend pour créer un PaymentIntent Stripe
-  async creerPaymentIntent(montantCents: number) {
-    const res = await axios.post(`${API_BASE_URL}/create-payment-intent`, {
+  async creerPaymentIntent(montantCents: number, customerEmail: string) {
+    return baseService.post('/auth/stripe/create-payment-intent', {
       amount: montantCents,
+      customerEmail,
     });
-    return res.data; // { clientSecret: "pi_xxx_secret_..." }
   },
 
   // 🔸 Vérifie une adresse via API Adresse de la Poste (data.gouv.fr)
   async verifierAdresse(adresse: string) {
-    const res = await axios.get(
+    // On garde fetch car c'est une API externe
+    const res = await fetch(
       `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(adresse)}&limit=1`
     );
-    return res.data; // contient les features de l'adresse
+    return res.json(); // contient les features de l'adresse
   },
 
   // ✅ NOUVEAU : Commande spécifique modèle 3D
   async commanderModele3D(commandeData: CommandeModele3D) {
-    return axios.post(`${API_BASE_URL}/auth/commande-modele3d`, commandeData);
+    return baseService.post('/auth/commande-modele3d', commandeData);
   },
 
   // 🔸 Garde l'ancien pour compatibilité (autres types de commandes)
   async enregistrerPaiement(paiementData: PaiementData) {
-    return axios.post(`${API_BASE_URL}/auth/paiement`, paiementData);
+    return baseService.post('/auth/paiement', paiementData);
   },
 };
