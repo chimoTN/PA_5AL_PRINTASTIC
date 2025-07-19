@@ -139,7 +139,11 @@ export const testCompleteAuth = async () => {
     // 2. Vérifier les cookies après connexion
     console.log('🍪 Cookies après connexion:', document.cookie);
     
-    // 3. Récupération des modèles
+    // 3. Vérifier les headers Set-Cookie
+    const setCookieHeader = loginResponse.headers.get('Set-Cookie');
+    console.log('🍪 Set-Cookie header:', setCookieHeader);
+    
+    // 4. Récupération des modèles
     console.log('📋 Étape 2: Récupération des modèles...');
     const modelsResponse = await fetch('https://projet3dback.onrender.com/api/modele3DClient/my-models', {
       method: 'GET',
@@ -162,12 +166,13 @@ export const testCompleteAuth = async () => {
       return { 
         success: true, 
         login: loginData, 
-        models: modelsData 
+        models: modelsData,
+        setCookieHeader: setCookieHeader
       };
     } else {
       const errorData = await modelsResponse.json().catch(() => ({}));
       console.error('📋 Models failed:', errorData);
-      return { success: false, step: 'models', error: errorData };
+      return { success: false, step: 'models', error: errorData, setCookieHeader: setCookieHeader };
     }
     
   } catch (error) {
