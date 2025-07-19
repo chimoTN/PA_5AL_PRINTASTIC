@@ -6,6 +6,7 @@ import ProductFileUpload from '../components/ProductFileUpload';
 import '../assets/styles/Dashboard.css';
 import FilesClientList from '../components/FilesClientList';
 import { useFilesClient } from '../hooks/useFilesClient';
+import { debugAuth, testAuth, testMyModels, testAllAuthEndpoints, testCompleteAuth } from '../utilis/authDebug';
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -22,452 +23,202 @@ const Dashboard: React.FC = () => {
 
   // ✅ Ajout des styles CSS pour les animations (une seule fois)
   React.useEffect(() => {
-    // ✅ Vérifier si les styles n'existent pas déjà
-    if (!document.getElementById('dashboard-notification-styles')) {
-      const style = document.createElement('style');
-      style.id = 'dashboard-notification-styles';
-      style.textContent = `
-        @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
-        }
-        
-        @keyframes slideOut {
-          from {
-            transform: translateX(0);
-            opacity: 1;
-          }
-          to {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-        }
-        
-        .dashboard-notification {
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          padding: 15px 20px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-          z-index: 1000;
-          animation: slideIn 0.3s ease-out;
-          font-weight: 500;
-          max-width: 400px;
-          word-wrap: break-word;
-        }
-        
-        .dashboard-notification.success {
-          background: #28a745;
-          color: white;
-        }
-        
-        .dashboard-notification.error {
-          background: #dc3545;
-          color: white;
-        }
-        
-        .dashboard-notification.slide-out {
-          animation: slideOut 0.3s ease-in;
-        }
-      `;
-      document.head.appendChild(style);
-    }
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .dashboard-container {
+        animation: fadeIn 0.5s ease-out;
+      }
+      
+      .tab-content {
+        animation: fadeIn 0.3s ease-out;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
   }, []);
 
-  // ✅ Fonction pour créer une notification
-  const createNotification = (message: string, type: 'success' | 'error', duration: number = 4000) => {
-    const notification = document.createElement('div');
-    notification.className = `dashboard-notification ${type}`;
+  // ✅ Fonction de débogage temporaire pour la production
+  const handleDebugAuth = async () => {
+    console.log('🔍 Début du débogage d\'authentification...');
+    debugAuth();
     
-    const icon = type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-triangle';
-    notification.innerHTML = `
-      <i class="${icon}" style="margin-right: 8px;"></i>
-      ${message}
-    `;
+    console.log('🧪 Test complet d\'authentification...');
+    const completeResult = await testCompleteAuth();
+    console.log('🧪 Résultat du test complet:', completeResult);
     
-    document.body.appendChild(notification);
-    
-    // ✅ Supprimer la notification après la durée spécifiée
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.classList.add('slide-out');
-        setTimeout(() => {
-          if (notification.parentNode) {
-            notification.remove();
-          }
-        }, 300);
-      }
-    }, duration);
-    
-    return notification;
-  };
+    if (completeResult.success) {
+      alert(`
+✅ TEST COMPLET RÉUSSI !
 
-  // ✅ Fonction pour rafraîchir les données
-  const handleRefresh = async () => {
-    try {
-      const isOwnerOrPrinter = user?.role === 'PROPRIETAIRE' || user?.role === 'IMPRIMEUR';
-      await refreshFiles(isOwnerOrPrinter);
-      // console.log('✅ Données du dashboard rafraîchies');
-    } catch (error) {
-      console.error('❌ Erreur lors du rafraîchissement:', error);
-    }
-  };
+🔑 Connexion: OK
+📋 Récupération modèles: OK
+🍪 Cookies: Fonctionnels
 
-  // ✅ Charger les données au montage et quand l'utilisateur change
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      handleRefresh();
-    }
-  }, [user, isAuthenticated, refreshTrigger]);
-
-  // ✅ Gestion succès upload - VERSION CORRIGÉE
-  const handleUploadSuccess = async (response?: any) => {
-    // console.log('✅ Upload réussi:', response);
-    
-    // ✅ Analyser la réponse pour extraire les informations
-    let fileName = 'Fichier';
-    let modelId = null;
-    let customName = null;
-    
-    if (response?.data?.modele) {
-      modelId = response.data.modele.id;
-      fileName = response.data.modele.fichier3D?.cheminFichier || 'Fichier';
-      customName = response.data.modele.nom || null;
-    }
-    
-    // ✅ Afficher une notification de succès
-    const displayName = customName || fileName;
-    // console.log(`✅ Modèle "${displayName}" uploadé avec succès (ID: ${modelId})`);
-    
-    createNotification(`Modèle "${displayName}" uploadé avec succès !`, 'success', 4000);
-    
-    // ✅ Rafraîchir les fichiers
-    setRefreshTrigger(prev => prev + 1);
-    
-    // ✅ Émettre un événement pour les autres composants
-    window.dispatchEvent(new CustomEvent('fileUploaded', { 
-      detail: { 
-        ...response, 
-        displayName,
-        modelId,
-        customName 
-      } 
-    }));
-    
-    // ✅ Basculer vers l'onglet des fichiers après upload réussi
-    setTimeout(() => {
-      setActiveTab('files');
-    }, 1500);
-  };
-
-  // ✅ Gestion erreur upload - VERSION CORRIGÉE
-  const handleUploadError = (error: string | Error | any) => {
-    let errorMessage: string;
-    
-    if (typeof error === 'string') {
-      errorMessage = error;
-    } else if (error instanceof Error) {
-      errorMessage = error.message;
-    } else if (error && typeof error === 'object') {
-      errorMessage = error.message || error.error || 'Erreur inconnue';
+Le problème vient probablement de votre service baseService.
+Vérifiez les logs dans la console (F12).
+      `);
     } else {
-      errorMessage = 'Une erreur est survenue lors de l\'upload';
+      alert(`
+❌ TEST COMPLET ÉCHOUÉ
+
+Étape: ${completeResult.step || 'inconnue'}
+Erreur: ${completeResult.error?.message || 'Erreur inconnue'}
+
+Vérifiez les logs dans la console (F12).
+      `);
     }
-    
-    console.error('❌ Erreur d\'upload dans Dashboard:', errorMessage);
-    
-    // ✅ Afficher une notification d'erreur
-    createNotification(`Erreur d'upload : ${errorMessage}`, 'error', 6000);
   };
 
-  // ✅ Vérification des rôles
-  const isOwnerOrPrinter = user?.role === 'PROPRIETAIRE' || user?.role === 'IMPRIMEUR';
+  // ✅ Fonction de rafraîchissement des fichiers
+  const handleRefreshFiles = async () => {
+    try {
+      await refreshFiles();
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Erreur lors du rafraîchissement:', error);
+    }
+  };
 
-  // ✅ Calculer les statistiques depuis les fichiers
-  const verifiedFilesCount = files.filter(file => file.estVerifie).length;
-  const pendingFilesCount = files.filter(file => !file.estVerifie).length;
+  // ✅ Gestion des succès/erreurs d'upload
+  const handleUploadSuccess = () => {
+    handleRefreshFiles();
+  };
+
+  const handleUploadError = (error: string) => {
+    console.error('Erreur upload:', error);
+  };
+
+  // ✅ Calculs pour l'affichage
+  const isOwnerOrPrinter = user?.role === 'PROPRIETAIRE' || user?.role === 'IMPRIMEUR';
   const totalFilesCount = files.length;
 
-  // ✅ Handler pour les actions des fichiers
-  const handleVerificationUpdate = async () => {
-    // console.log('✅ Vérification mise à jour, rafraîchissement...');
-    await handleRefresh();
-  };
-
-  // ✅ Handler pour quand un fichier est sélectionné/modifié
-  const handleFileAction = () => {
-    // console.log('📁 Action sur fichier, rafraîchissement...');
-    setRefreshTrigger(prev => prev + 1);
-  };
-
-  // ✅ Fonction pour obtenir le label du rôle
-  const getRoleLabel = (role: string): string => {
-    const roleLabels: { [key: string]: string } = {
-      'PROPRIETAIRE': 'Propriétaire',
-      'IMPRIMEUR': 'Imprimeur',
-      'CLIENT': 'Client'
-    };
-    return roleLabels[role] || role;
-  };
-
-  // ✅ Fonction pour obtenir la couleur du rôle
-  const getRoleColor = (role: string): string => {
-    const roleColors: { [key: string]: string } = {
-      'PROPRIETAIRE': '#dc3545',
-      'IMPRIMEUR': '#28a745',
-      'CLIENT': '#007bff'
-    };
-    return roleColors[role] || '#6c757d';
-  };
-
-  // ✅ Affichage si pas authentifié
+  // ✅ Affichage du loading
   if (!isAuthenticated) {
     return (
-      <div className="dashboard-page">
-        <div className="dashboard-container">
-          <div className="dashboard-header">
-            <h1>
-              <i className="fas fa-lock"></i>
-              Accès requis
-            </h1>
-            <p className="dashboard-subtitle">
-              Vous devez être connecté pour accéder à votre espace
-            </p>
-          </div>
+      <div className="dashboard-container">
+        <div className="loading-auth">
+          <i className="fas fa-spinner fa-spin"></i>
+          <p>Vérification de l'authentification...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-container">
-        {/* ✅ En-tête du dashboard */}
-        <div className="dashboard-header">
-          <h1>
-            <i className="fas fa-tachometer-alt"></i>
-            Mon Espace 3D
-          </h1>
-          <p className="dashboard-subtitle">
-            {isOwnerOrPrinter 
-              ? 'Gérez vos produits et les fichiers clients' 
-              : 'Uploadez vos modèles 3D personnels avec nom personnalisé et suivez vos impressions'
-            }
+    <div className="dashboard-container">
+      {/* ✅ Header avec informations utilisateur */}
+      <div className="dashboard-header">
+        <div className="user-info">
+          <h2>Bienvenue, {user?.prenom} {user?.nom}</h2>
+          <p className="user-role">
+            <i className="fas fa-user-tag"></i>
+            {user?.role === 'PROPRIETAIRE' && 'Administrateur'}
+            {user?.role === 'IMPRIMEUR' && 'Imprimeur'}
+            {user?.role === 'CLIENT' && 'Client'}
           </p>
-          
-          {user && (
-            <div className="user-info">
-              <span className="welcome-text">
-                Bienvenue, {user.prenom} {user.nom}
-              </span>
-              <span 
-                className={`role-badge role-${user.role.toLowerCase()}`}
-                style={{ 
-                  backgroundColor: getRoleColor(user.role),
-                  color: 'white',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 'bold'
-                }}
-              >
-                {getRoleLabel(user.role)}
-              </span>
-            </div>
-          )}
         </div>
-
-        {/* ✅ Navigation par onglets */}
-        <div className="dashboard-tabs">
+        
+        {/* ✅ Bouton de débogage temporaire pour la production */}
+        <div className="debug-section">
           <button 
-            className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`}
-            onClick={() => setActiveTab('upload')}
+            onClick={handleDebugAuth}
+            className="btn btn-warning btn-sm"
+            style={{ marginRight: '10px' }}
           >
-            <i className="fas fa-cloud-upload-alt"></i>
-            {isOwnerOrPrinter ? 'Ajouter un produit' : 'Nouveau modèle personnel'}
+            <i className="fas fa-bug"></i> Debug Auth
           </button>
           
           <button 
-            className={`tab-button ${activeTab === 'files' ? 'active' : ''}`}
-            onClick={() => setActiveTab('files')}
+            onClick={handleRefreshFiles}
+            className="btn btn-info btn-sm"
+            disabled={loading}
           >
-            <i className="fas fa-folder"></i>
-            {isOwnerOrPrinter ? 'Fichiers clients' : 'Mes modèles personnels'}
-            {totalFilesCount > 0 && (
-              <span className="files-count-badge">{totalFilesCount}</span>
-            )}
+            <i className="fas fa-sync-alt"></i> Actualiser
           </button>
         </div>
+      </div>
 
-        {/* ✅ Contenu des onglets */}
-        <div className="dashboard-content">
-          {activeTab === 'upload' && (
-            <div className="tab-content upload-tab">
-              {isOwnerOrPrinter ? (
-                <ProductFileUpload 
-                  onUploadSuccess={handleUploadSuccess}
-                  onUploadError={handleUploadError}
-                />
-              ) : (
-                <FileClientUpload
-                  onUploadSuccess={handleUploadSuccess}
-                  onUploadError={handleUploadError}
-                />
-              )}
-            </div>
+      {/* ✅ Onglets */}
+      <div className="dashboard-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'upload' ? 'active' : ''}`}
+          onClick={() => setActiveTab('upload')}
+        >
+          <i className="fas fa-cloud-upload-alt"></i>
+          {isOwnerOrPrinter ? 'Ajouter un produit' : 'Nouveau modèle personnel'}
+        </button>
+        
+        <button 
+          className={`tab-button ${activeTab === 'files' ? 'active' : ''}`}
+          onClick={() => setActiveTab('files')}
+        >
+          <i className="fas fa-folder"></i>
+          {isOwnerOrPrinter ? 'Fichiers clients' : 'Mes modèles personnels'}
+          {totalFilesCount > 0 && (
+            <span className="files-count-badge">{totalFilesCount}</span>
           )}
+        </button>
+      </div>
 
-          {activeTab === 'files' && (
-            <div className="tab-content files-tab">
-              <FilesClientList
-                key={1}
-                showAllFiles={false}
+      {/* ✅ Contenu des onglets */}
+      <div className="dashboard-content">
+        {activeTab === 'upload' && (
+          <div className="tab-content upload-tab">
+            {isOwnerOrPrinter ? (
+              <ProductFileUpload 
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
               />
-            </div>
-          )}
-        </div>
-
-        {/* ✅ Statistiques */}
-        <div className="dashboard-stats">
-          <div className="stat-card">
-            <i className="fas fa-cube" style={{ color: '#007bff' }}></i>
-            <div className="stat-info">
-              <span className="stat-number">
-                {loading ? (
-                  <i className="fas fa-spinner fa-spin"></i>
-                ) : (
-                  totalFilesCount
-                )}
-              </span>
-              <span className="stat-label">
-                {isOwnerOrPrinter ? 'Fichiers clients' : 'Modèles personnels'}
-              </span>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <i className="fas fa-check-circle" style={{ color: '#28a745' }}></i>
-            <div className="stat-info">
-              <span className="stat-number">
-                {loading ? (
-                  <i className="fas fa-spinner fa-spin"></i>
-                ) : (
-                  verifiedFilesCount
-                )}
-              </span>
-              <span className="stat-label">Vérifiés</span>
-            </div>
-          </div>
-          
-          <div className="stat-card">
-            <i className="fas fa-clock" style={{ color: '#ffc107' }}></i>
-            <div className="stat-info">
-              <span className="stat-number">
-                {loading ? (
-                  <i className="fas fa-spinner fa-spin"></i>
-                ) : (
-                  pendingFilesCount
-                )}
-              </span>
-              <span className="stat-label">En attente</span>
-            </div>
-          </div>
-
-          <div className="stat-card refresh-card">
-            <button 
-              onClick={handleRefresh}
-              disabled={loading}
-              className="refresh-button"
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                color: loading ? '#6c757d' : '#007bff',
-                fontSize: '18px',
-                padding: '10px',
-                borderRadius: '50%',
-                transition: 'all 0.3s ease'
-              }}
-              title="Rafraîchir les données"
-            >
-              <i className={`fas fa-sync ${loading ? 'fa-spin' : ''}`}></i>
-            </button>
-          </div>
-        </div>
-
-        {/* ✅ Messages d'erreur */}
-        {error && (
-          <div className="dashboard-error" style={{
-            marginTop: '20px',
-            padding: '15px',
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            borderRadius: '8px',
-            border: '1px solid #f5c6cb'
-          }}>
-            <i className="fas fa-exclamation-triangle" style={{ marginRight: '10px' }}></i>
-            {error}
-            <button 
-              onClick={handleRefresh}
-              style={{
-                marginLeft: '10px',
-                padding: '5px 10px',
-                backgroundColor: '#dc3545',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '12px'
-              }}
-            >
-              Réessayer
-            </button>
+            ) : (
+              <FileClientUpload
+                onUploadSuccess={handleUploadSuccess}
+                onUploadError={handleUploadError}
+              />
+            )}
           </div>
         )}
 
-        {/* ✅ Informations contextuelles */}
-        <div className="dashboard-info">
-          {!isOwnerOrPrinter && (
-            <div className="info-card privacy">
-              <i className="fas fa-user-lock" style={{ color: '#007bff' }}></i>
-              <div className="info-content">
-                <h4>Confidentialité de vos modèles</h4>
-                <p>Vos modèles 3D personnels ne sont visibles que par vous et les imprimeurs autorisés. Vous pouvez leur donner un nom personnalisé pour vous y retrouver.</p>
-              </div>
-            </div>
-          )}
-          
-          {isOwnerOrPrinter && (
-            <div className="info-card admin">
-              <i className="fas fa-shield-alt" style={{ color: '#28a745' }}></i>
-              <div className="info-content">
-                <h4>Accès administrateur</h4>
-                <p>Vous avez accès à tous les fichiers clients pour validation et impression.</p>
-              </div>
-            </div>
-          )}
-
-          <div className="info-card formats">
-            <i className="fas fa-file-code" style={{ color: '#6c757d' }}></i>
-            <div className="info-content">
-              <h4>Formats supportés</h4>
-              <p>STL, OBJ, PLY, 3MF, AMF - Taille maximum : 50MB</p>
-            </div>
+        {activeTab === 'files' && (
+          <div className="tab-content files-tab">
+            <FilesClientList
+              key={refreshTrigger}
+              showAllFiles={isOwnerOrPrinter}
+            />
           </div>
+        )}
+      </div>
 
-          <div className="info-card country">
-            <i className="fas fa-globe-europe" style={{ color: '#28a745' }}></i>
-            <div className="info-content">
-              <h4>Livraison disponible</h4>
-              <p>🇫🇷 France - Expédition rapide et sécurisée</p>
-            </div>
+      {/* ✅ Statistiques */}
+      <div className="dashboard-stats">
+        <div className="stat-card">
+          <i className="fas fa-cube" style={{ color: '#007bff' }}></i>
+          <div className="stat-info">
+            <h4>{totalFilesCount}</h4>
+            <p>Fichiers {isOwnerOrPrinter ? 'clients' : 'personnels'}</p>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <i className="fas fa-check-circle" style={{ color: '#28a745' }}></i>
+          <div className="stat-info">
+            <h4>{files.filter(f => f.estVerifie).length}</h4>
+            <p>Fichiers vérifiés</p>
+          </div>
+        </div>
+        
+        <div className="stat-card">
+          <i className="fas fa-clock" style={{ color: '#ffc107' }}></i>
+          <div className="stat-info">
+            <h4>{files.filter(f => !f.estVerifie).length}</h4>
+            <p>En attente</p>
           </div>
         </div>
       </div>

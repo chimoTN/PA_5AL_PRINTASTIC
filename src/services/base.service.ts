@@ -100,25 +100,33 @@ class BaseService {
     const url = this.buildUrl(endpoint);
     const headers = this.prepareHeaders(options);
     
-    // 🔍 DEBUG COOKIES AVANT REQUÊTE
-    console.log('🍪 === COOKIES DEBUG ===');
+    // 🔍 DEBUG COOKIES AVANT REQUÊTE - VERSION PRODUCTION
+    console.log('🍪 === COOKIES DEBUG PRODUCTION ===');
     console.log('🍪 Cookies disponibles:', document.cookie);
     console.log('🌍 Domain actuel:', window.location.hostname);
     console.log('🔗 URL cible:', url);
-    console.log('🍪 ====================');
+    console.log('🔗 Origin:', window.location.origin);
+    console.log('🔗 Protocol:', window.location.protocol);
+    console.log('🍪 ================================');
     
+    // ✅ CORRECTION: S'assurer que credentials est toujours 'include'
     const requestOptions: RequestInit = {
       credentials: 'include', // 🔑 SESSIONS : Toujours inclure les cookies
       headers,
       ...options,
     };
 
-    console.log('📡 Requête SESSION:', {
+    // ✅ FORCER credentials: 'include' même si options le remplace
+    requestOptions.credentials = 'include';
+
+    console.log('📡 Requête SESSION PRODUCTION:', {
       method: options.method || 'GET',
       url,
       hasBody: !!options.body,
-      credentials: 'include',
-      documentCookies: document.cookie // 🔍 AJOUTÉ
+      credentials: requestOptions.credentials,
+      documentCookies: document.cookie,
+      origin: window.location.origin,
+      userAgent: navigator.userAgent
     });
 
     // Upload avec progression si nécessaire
@@ -129,11 +137,12 @@ class BaseService {
     try {
       const response = await fetch(url, requestOptions);
       
-      console.log('📡 Réponse:', {
+      console.log('📡 Réponse PRODUCTION:', {
         status: response.status,
         statusText: response.statusText,
         ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
+        headers: Object.fromEntries(response.headers.entries()),
+        url: response.url
       });
 
       // ✅ VÉRIFIER LES COOKIES DANS LA RÉPONSE
@@ -151,6 +160,8 @@ class BaseService {
         switch (response.status) {
           case 401:
             errorMessage = 'Session expirée - veuillez vous reconnecter';
+            console.error('🔒 ERREUR 401 - Session expirée ou invalide');
+            console.error('🔒 Headers de réponse:', Object.fromEntries(response.headers.entries()));
             break;
           case 403:
             errorMessage = 'Accès refusé';
@@ -169,6 +180,7 @@ class BaseService {
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorData.error || errorMessage;
+          console.error('🔒 Détails erreur:', errorData);
         } catch {
           // Ignore parse errors
         }
