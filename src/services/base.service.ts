@@ -14,6 +14,7 @@ export interface AuthResponse {
   message?: string;
   user?: AuthUser;
   utilisateur?: AuthUser;
+  sessionId?: string; // ✅ AJOUT : Session ID du backend
 }
 
 export interface AuthContextType {
@@ -25,6 +26,40 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   refreshAuth: () => Promise<void>;
 }
+
+// ✅ NOUVELLE FONCTION : Récupérer le cookie de session manuellement
+const getSessionCookie = (): string | null => {
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'connect.sid') {
+      return value;
+    }
+  }
+  return null;
+};
+
+// ✅ NOUVELLE FONCTION : Construire le header Cookie manuellement
+const buildCookieHeader = (): string => {
+  const sessionCookie = getSessionCookie();
+  const cookies = [];
+  
+  if (sessionCookie) {
+    cookies.push(`connect.sid=${sessionCookie}`);
+  }
+  
+  // Ajouter les autres cookies de debug si présents
+  const debugCookies = document.cookie.split(';').filter(c => 
+    c.trim().startsWith('debug_session=') || 
+    c.trim().startsWith('test_')
+  );
+  
+  debugCookies.forEach(cookie => {
+    cookies.push(cookie.trim());
+  });
+  
+  return cookies.join('; ');
+};
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -66,30 +101,24 @@ class BaseService {
     console.log('🏗️ BaseService initialisé (SESSION MODE):', this.baseURL);
   }
 
-  private prepareHeaders(options: RequestInit = {}): Record<string, string> {
-    const defaultHeaders: Record<string, string> = {
-      'Accept': 'application/json',
-    };
-
-    // Ne pas définir Content-Type pour FormData
-    const isFormData = options.body instanceof FormData;
-    if (!isFormData && options.method !== 'GET') {
-      defaultHeaders['Content-Type'] = 'application/json';
-    }
-
-    const customHeaders = options.headers as Record<string, string> || {};
-    
-    console.log('🏷️ Headers (SESSION MODE):', {
-      ...defaultHeaders,
-      ...customHeaders
-    });
-
-    return { ...defaultHeaders, ...customHeaders };
+  private buildUrl(endpoint: string): string {
+    return `${this.baseURL}${endpoint}`;
   }
 
-  buildUrl(endpoint: string): string {
-    const cleanEndpoint: string = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-    return `${API_BASE_URL}${cleanEndpoint}`;
+  private prepareHeaders(options: RequestInit = {}): HeadersInit {
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // ✅ GESTION MANUELLE DU COOKIE DE SESSION
+    const cookieHeader = buildCookieHeader();
+    if (cookieHeader) {
+      headers['Cookie'] = cookieHeader;
+      console.log('🍪 Cookie header manuel:', cookieHeader);
+    }
+
+    return headers;
   }
 
   async request<T = any>(
@@ -103,6 +132,7 @@ class BaseService {
     // 🔍 DEBUG COOKIES AVANT REQUÊTE - VERSION PRODUCTION
     console.log('🍪 === COOKIES DEBUG PRODUCTION ===');
     console.log('🍪 Cookies disponibles:', document.cookie);
+    console.log('🍪 Cookie de session manuel:', getSessionCookie());
     console.log('🌍 Domain actuel:', window.location.hostname);
     console.log('🔗 URL cible:', url);
     console.log('🔗 Origin:', window.location.origin);
@@ -124,7 +154,7 @@ class BaseService {
       url,
       hasBody: !!options.body,
       credentials: requestOptions.credentials,
-      documentCookies: document.cookie,
+      cookieHeader: headers['Cookie'],
       origin: window.location.origin,
       userAgent: navigator.userAgent
     });
@@ -179,35 +209,20 @@ class BaseService {
         
         try {
           const errorData = await response.json();
-          errorMessage = errorData.message || errorData.error || errorMessage;
-          console.error('🔒 Détails erreur:', errorData);
-        } catch {
-          // Ignore parse errors
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // Si pas de JSON, utiliser le message par défaut
         }
         
-        console.error(`❌ Erreur ${response.status}:`, errorMessage);
-        throw new Error(errorMessage);
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        throw error;
       }
-      
-      const contentType = response.headers.get('Content-Type') || '';
-      
-      if (contentType.includes('application/json')) {
-        const jsonResponse = await response.json();
-        console.log('✅ Réponse JSON:', jsonResponse);
-        return jsonResponse;
-      } else {
-        const textResponse = await response.text();
-        console.log('✅ Réponse texte:', textResponse);
-        return { success: true, data: textResponse } as unknown as T;
-      }
-      
-    } catch (error: any) {
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
       console.error('❌ Erreur requête:', error);
-      
-      if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-        throw new Error('Erreur de connexion au serveur');
-      }
-      
       throw error;
     }
   }

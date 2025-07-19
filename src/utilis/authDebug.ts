@@ -70,6 +70,89 @@ export const testAuthWithCleanup = async () => {
   window.location.href = '/login';
 };
 
+// ✅ NOUVELLE FONCTION : Test de gestion manuelle des cookies
+export const testManualCookieManagement = () => {
+  console.log('🧪 TEST GESTION MANUELLE DES COOKIES...');
+  
+  // 1. Récupérer le cookie actuel
+  const getSessionCookie = (): string | null => {
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === 'connect.sid') {
+        return value;
+      }
+    }
+    return null;
+  };
+  
+  const currentCookie = getSessionCookie();
+  console.log('🍪 Cookie de session actuel:', currentCookie);
+  
+  // 2. Tester la définition manuelle d'un cookie
+  const testSessionId = 'test_manual_session_' + Date.now();
+  const setSessionCookie = (sessionId: string): void => {
+    const cookieValue = `connect.sid=${sessionId}; Max-Age=86400; Path=/; Domain=.onrender.com; Secure; SameSite=None`;
+    document.cookie = cookieValue;
+    console.log('🍪 Cookie de test défini:', sessionId);
+  };
+  
+  setSessionCookie(testSessionId);
+  
+  // 3. Vérifier que le cookie a été défini
+  const newCookie = getSessionCookie();
+  console.log('🍪 Cookie de session après définition manuelle:', newCookie);
+  
+  // 4. Tester la suppression manuelle
+  const removeSessionCookie = (): void => {
+    const domains = ['.onrender.com', 'pa-5al-printastic.onrender.com', 'projet3dback.onrender.com', ''];
+    const paths = ['/', '/api'];
+    
+    domains.forEach(domain => {
+      paths.forEach(path => {
+        const domainPart = domain ? `; domain=${domain}` : '';
+        document.cookie = `connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}${domainPart}`;
+      });
+    });
+    
+    console.log('🍪 Cookie de session supprimé manuellement');
+  };
+  
+  removeSessionCookie();
+  
+  // 5. Vérifier la suppression
+  const finalCookie = getSessionCookie();
+  console.log('🍪 Cookie de session après suppression:', finalCookie);
+  
+  console.log('✅ Test de gestion manuelle des cookies terminé');
+};
+
+// ✅ NOUVELLE FONCTION : Vérifier les cookies de session
+export const checkSessionCookies = () => {
+  console.log('🔍 VÉRIFICATION DES COOKIES DE SESSION...');
+  
+  const cookies = document.cookie.split(';');
+  const sessionCookies = [];
+  
+  cookies.forEach(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'connect.sid') {
+      sessionCookies.push({ name, value });
+    }
+  });
+  
+  console.log('🍪 Cookies de session trouvés:', sessionCookies);
+  console.log('🍪 Tous les cookies:', document.cookie);
+  
+  if (sessionCookies.length === 0) {
+    console.log('❌ Aucun cookie de session trouvé');
+  } else if (sessionCookies.length > 1) {
+    console.log('⚠️ Plusieurs cookies de session trouvés - possible conflit');
+  } else {
+    console.log('✅ Un seul cookie de session trouvé');
+  }
+};
+
 // ✅ Nouvelle fonction pour tester l'authentification
 export const testAuth = async () => {
   console.log('🧪 TEST AUTHENTIFICATION...');

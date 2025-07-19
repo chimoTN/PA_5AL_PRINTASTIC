@@ -6,7 +6,7 @@ import ProductFileUpload from '../components/ProductFileUpload';
 import '../assets/styles/Dashboard.css';
 import FilesClientList from '../components/FilesClientList';
 import { useFilesClient } from '../hooks/useFilesClient';
-import { debugAuth, testAuth, testMyModels, testAllAuthEndpoints, testCompleteAuth, forceLogout, testAuthWithCleanup } from '../utilis/authDebug';
+import { debugAuth, testAuth, testMyModels, testAllAuthEndpoints, testCompleteAuth, forceLogout, testAuthWithCleanup, testManualCookieManagement, checkSessionCookies } from '../utilis/authDebug';
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -150,6 +150,22 @@ Vérifiez les logs dans la console (F12).
             style={{ marginRight: '10px' }}
           >
             <i className="fas fa-broom"></i> Test avec Nettoyage
+          </button>
+          
+          <button 
+            onClick={testManualCookieManagement}
+            className="btn btn-success btn-sm"
+            style={{ marginRight: '10px' }}
+          >
+            <i className="fas fa-cookie-bite"></i> Test Cookies
+          </button>
+          
+          <button 
+            onClick={checkSessionCookies}
+            className="btn btn-info btn-sm"
+            style={{ marginRight: '10px' }}
+          >
+            <i className="fas fa-search"></i> Vérifier Cookies
           </button>
           
           <button 
