@@ -143,6 +143,17 @@ export const testCompleteAuth = async () => {
     const setCookieHeader = loginResponse.headers.get('Set-Cookie');
     console.log('🍪 Set-Cookie header:', setCookieHeader);
     
+    // 4. Vérifier spécifiquement le cookie de session
+    const hasSessionCookie = document.cookie.includes('connect.sid');
+    console.log('🍪 Cookie de session présent:', hasSessionCookie);
+    
+    if (!hasSessionCookie) {
+        console.error('❌ PROBLÈME: Cookie de session manquant !');
+        console.error('❌ Le backend doit configurer sameSite: "none" pour cross-origin');
+    } else {
+        console.log('✅ Cookie de session présent');
+    }
+    
     // 4. Récupération des modèles
     console.log('📋 Étape 2: Récupération des modèles...');
     const modelsResponse = await fetch('https://projet3dback.onrender.com/api/modele3DClient/my-models', {
