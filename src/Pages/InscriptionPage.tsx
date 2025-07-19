@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Modal } from 'react-bootstrap'; 
+import { Button, Modal } from 'react-bootstrap'; 
 import { userService } from '../services/user.service';
 import '../assets/styles/LoginPage.css';
 
@@ -83,10 +83,17 @@ export default function InscriptionPage() {
         sampleFile
       });
       setSent(true);
-      toast.success('Demande envoyée avec succès !');
+      toast.success('Demande envoyée avec succès !', {
+        position: 'top-center',
+        duration: 5000
+      });
+      
     } catch (err) {
       console.error(err);
-      toast.error('Erreur lors de l’envoi du formulaire');
+      toast.error('Erreur lors de l’envoi du formulaire', {
+        position: 'top-center',
+        duration: 5000
+      });
     } finally {
       setLoading(false);
     }
@@ -97,9 +104,9 @@ export default function InscriptionPage() {
       <div className="text-center mt-5">
         <h2>🎉 Merci pour votre demande</h2>
         <p>Nous avons bien reçu votre formulaire. Vous serez notifié par email.</p>
-        <button type="button" className="btn btn-outline-dark" onClick={() => navigate('/')}>
-          Retour à l'accueil
-        </button>
+        <Button variant="outline-dark" onClick={() => navigate('/')}>
+          Retour à l’accueil
+        </Button>
       </div>
     );
   }
@@ -185,9 +192,9 @@ export default function InscriptionPage() {
         </button>
 
         <div className="text-center mt-2">
-          <button type="button" className="btn btn-link" onClick={() => navigate('/login')}>
+          <Button variant="link" onClick={() => navigate('/login')}>
             ← Retour
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -203,7 +210,7 @@ export default function InscriptionPage() {
             ✅ Respectez les délais une fois une commande acceptée</p>
         </Modal.Body>
         <Modal.Footer>
-          <button type="button" className="btn btn-secondary" onClick={() => setShowCGUModal(false)}>Fermer</button>
+          <Button variant="secondary" onClick={() => setShowCGUModal(false)}>Fermer</Button>
         </Modal.Footer>
       </Modal>
     </div>

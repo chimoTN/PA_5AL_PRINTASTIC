@@ -18,43 +18,48 @@ interface Demande {
 const GestionImprimeurs: React.FC = () => {
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { user } = useAuth();
-
   const API_BACK = import.meta.env.API_BACK_SANS;
 
   const fetchDemandes = async () => {
     try {
+      setErrorMessage(null);
       const res = await imprimeurService.getAllPrinterRequests();
       setDemandes(res.data);
     } catch (err) {
       console.error('Erreur récupération demandes imprimeur', err);
+      setErrorMessage("Impossible de charger les demandes. Réessayez plus tard.");
     }
   };
 
   const handleApprove = async (id: number) => {
     if (!user) return;
     try {
-      // 1. Approbation côté backend
+      setErrorMessage(null);
       const res = await imprimeurService.approveRequest(id, user.id);
-
-      console.log("res de tes mort", res)
-
-      // 2. Création du compte Stripe et envoi mail onboarding
-      await imprimeurService.createStripeAccount(res.imprimeurId);
-
+      //await imprimeurService.createStripeAccount(res.imprimeurId);
       fetchDemandes();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erreur validation demande', err);
+      const code = err?.response?.data?.statusCode || err?.response?.status;
+      if (code === 409) {
+        setErrorMessage(err.response.data.message || "Violation de contrainte d'unicité.");
+      } else {
+        setErrorMessage("Erreur lors de l'approbation. Réessayez.");
+      }
     }
   };
 
   const handleReject = async (id: number) => {
     if (!user) return;
     try {
+      setErrorMessage(null);
       await imprimeurService.rejectRequest(id, user.id);
       fetchDemandes();
     } catch (err) {
       console.error('Erreur rejet demande', err);
+      setErrorMessage("Impossible de refuser la demande. Réessayez.");
     }
   };
 
@@ -66,6 +71,19 @@ const GestionImprimeurs: React.FC = () => {
     <div className="dashboard-page" style={{ padding: '20px', background: '#f5f8fa' }}>
       <h2>Demandes d'inscription Imprimeur</h2>
 
+      {errorMessage && (
+        <div style={{
+          padding: '10px',
+          marginBottom: '20px',
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          border: '1px solid #f5c6cb',
+          borderRadius: '4px'
+        }}>
+          {errorMessage}
+        </div>
+      )}
+
       <table style={{ width: '100%', marginTop: '20px', background: '#fff', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden' }}>
         <thead style={{ background: '#ddd' }}>
           <tr>
@@ -76,10 +94,7 @@ const GestionImprimeurs: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {demandes
-            .filter(d => d.status !== 'rejected') // 🔍 on masque les approuvées
-            .map((d) => (
-
+          {demandes.filter(d => d.status !== 'rejected').map((d) => (
             <React.Fragment key={d.id}>
               <tr
                 style={{ cursor: 'pointer', background: selectedId === d.id ? '#e6f7ff' : 'transparent' }}
@@ -87,20 +102,16 @@ const GestionImprimeurs: React.FC = () => {
               >
                 <td style={tdStyle}>{d.companyName}</td>
                 <td style={tdStyle}>{d.requesterEmail}</td>
-                <td style={tdStyle}>
-                  {d.status === 'pending' ? '🕓 En attente' :
-                  d.status === 'approved' ? '✅ Approuvée' : '⛔ Refusée'}
-                </td>
+                <td style={tdStyle}>{d.status === 'pending' ? '🕓 En attente' : d.status === 'approved' ? '✅ Approuvée' : '⛔ Refusée'}</td>
                 <td style={tdStyle}>
                   {d.status === 'pending' && (
                     <>
-                      <button onClick={(e) => { e.stopPropagation(); handleApprove(d.id); }} style={btnStyle}>✅ Accepter</button>
-                      <button onClick={(e) => { e.stopPropagation(); handleReject(d.id); }} style={btnDanger}>⛔ Refuser</button>
+                      <button onClick={e => { e.stopPropagation(); handleApprove(d.id); }} style={btnStyle}>✅ Accepter</button>
+                      <button onClick={e => { e.stopPropagation(); handleReject(d.id); }} style={btnDanger}>⛔ Refuser</button>
                     </>
                   )}
                 </td>
               </tr>
-
               {selectedId === d.id && (
                 <tr>
                   <td colSpan={4} style={{ padding: 0 }}>
@@ -122,30 +133,20 @@ const GestionImprimeurs: React.FC = () => {
                       {d.sampleFile && (
                         <p>
                           <strong>Fichier échantillon :</strong>{' '}
-                          <a href={`${API_BACK}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
-                            📎 Voir le fichier
-                          </a>
+                          <a href={`${API_BACK}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">📎 Voir le fichier</a>
                         </p>
                       )}
-                      <button onClick={() => setSelectedId(null)} style={{ ...btnDanger, marginTop: '10px' }}>
-                        Fermer
-                      </button>
+                      <button onClick={() => setSelectedId(null)} style={{ ...btnDanger, marginTop: '10px' }}>Fermer</button>
                     </div>
                   </td>
                 </tr>
-
               )}
             </React.Fragment>
           ))}
         </tbody>
       </table>
 
-
-
-
-      {/* Les demande refusé */}
       <h2>Demandes d'inscription rejetée</h2>
-
       <table style={{ width: '100%', marginTop: '20px', background: '#fff', borderCollapse: 'collapse', borderRadius: '8px', overflow: 'hidden' }}>
         <thead style={{ background: '#ddd' }}>
           <tr>
@@ -156,10 +157,7 @@ const GestionImprimeurs: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {demandes
-            .filter(d => d.status === 'rejected')
-            .map((d) => (
-
+          {demandes.filter(d => d.status === 'rejected').map((d) => (
             <React.Fragment key={d.id}>
               <tr
                 style={{ cursor: 'pointer', background: selectedId === d.id ? '#e6f7ff' : 'transparent' }}
@@ -167,20 +165,11 @@ const GestionImprimeurs: React.FC = () => {
               >
                 <td style={tdStyle}>{d.companyName}</td>
                 <td style={tdStyle}>{d.requesterEmail}</td>
+                <td style={tdStyle}>⛔ Refusée</td>
                 <td style={tdStyle}>
-                  {d.status === 'pending' ? '🕓 En attente' :
-                  d.status === 'approved' ? '✅ Approuvée' : '⛔ Refusée'}
-                </td>
-                <td style={tdStyle}>
-                  {d.status === 'pending' && (
-                    <>
-                      <button onClick={(e) => { e.stopPropagation(); handleApprove(d.id); }} style={btnStyle}>✅ Accepter</button>
-                      <button onClick={(e) => { e.stopPropagation(); handleReject(d.id); }} style={btnDanger}>⛔ Refuser</button>
-                    </>
-                  )}
+                  <button onClick={() => handleReject(d.id)} style={btnDanger}>⛔ Supprimer</button>
                 </td>
               </tr>
-
               {selectedId === d.id && (
                 <tr>
                   <td colSpan={4} style={{ padding: 0 }}>
@@ -199,27 +188,15 @@ const GestionImprimeurs: React.FC = () => {
                       <p><strong>Adresse :</strong> {d.address}</p>
                       <p><strong>SIRET :</strong> {d.siret}</p>
                       <p><strong>Date de soumission :</strong> {new Date(d.createdAt).toLocaleDateString()}</p>
-                      {d.sampleFile && (
-                        <p>
-                          <strong>Fichier échantillon :</strong>{' '}
-                          <a href={`${API_BACK}/${d.sampleFile}`} target="_blank" rel="noopener noreferrer">
-                            📎 Voir le fichier
-                          </a>
-                        </p>
-                      )}
-                      <button onClick={() => setSelectedId(null)} style={{ ...btnDanger, marginTop: '10px' }}>
-                        Fermer
-                      </button>
+                      <button onClick={() => setSelectedId(null)} style={{ ...btnDanger, marginTop: '10px' }}>Fermer</button>
                     </div>
                   </td>
                 </tr>
-
               )}
             </React.Fragment>
           ))}
         </tbody>
       </table>
-
     </div>
   );
 };

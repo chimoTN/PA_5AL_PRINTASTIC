@@ -139,11 +139,18 @@ const TableauSignalements = () => {
   const signalementsNonResolu = signalements.filter(s => !s.resolu);
 
   return (
-    <div style={{ background: '#fff', padding: '20px', borderRadius: '8px' }}>
-      {renderTable(signalementsNonResolu, 'Signalements non résolus')}
-      {renderTable(signalementsResolu, 'Historique signalements résolus')}
-    </div>
-  );
+  <div style={{ background: '#fff', padding: '20px', borderRadius: '8px' }}>
+    {renderTable(signalementsNonResolu, 'Signalements non résolus')}
+
+    {signalementsResolu.length > 0 ? (
+      renderTable(signalementsResolu, 'Historique des signalements résolus')
+    ) : (
+      <p style={{ textAlign: 'center', color: '#666', marginTop: '20px' }}>
+        Aucun signalement résolu pour l’instant.
+      </p>
+    )}
+  </div>
+);
 };
 
 export default TableauSignalements;

@@ -1,95 +1,149 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import reclamationService from '../services/reclamation.service';
 
-interface Signalement {
+interface Ligne {
   id: number;
-  type: string;
+  codeReclamation: string;
+  reference: string;
+  imprimeurId: number | null;
   date: string;
   produit: string;
-  reference: string;
   quantite: number;
+  prixUnitaire: string;
   statut: string;
-  imprimeurId: number | null;
+  description: string;
+  imagePath?: string | null;
 }
 
-interface Props {
-  donnees: Signalement[];
-}
-
-const TableauReclamation: React.FC<Props> = ({ donnees }) => {
+const TableauReclamation: React.FC = () => {
   const [triAsc, setTriAsc] = useState(true);
   const [colonneTriee, setColonneTriee] = useState<'date' | 'type' | null>(null);
   const [selectionId, setSelectionId] = useState<number | null>(null);
+  const [reclamations, setReclamations] = useState<Ligne[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const trier = (col: 'date' | 'type') => {
     setColonneTriee(col);
     setTriAsc(prev => (colonneTriee === col ? !prev : true));
   };
 
-  const donneesTriees = [...donnees].sort((a, b) => {
+  const donneesTriees = [...reclamations].sort((a, b) => {
     if (!colonneTriee) return 0;
-    const valA = a[colonneTriee].toLowerCase();
-    const valB = b[colonneTriee].toLowerCase();
+    const valA = (a[colonneTriee] as unknown as string).toLowerCase();
+    const valB = (b[colonneTriee] as unknown as string).toLowerCase();
     if (valA < valB) return triAsc ? -1 : 1;
     if (valA > valB) return triAsc ? 1 : -1;
     return 0;
   });
+
+  const loadAll = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const recResp = await reclamationService.getAllReclamations();
+      const recData = Array.isArray(recResp) ? recResp : recResp.data ?? [];
+
+      const recFormate: Ligne[] = recData.map((r: any) => ({
+        id: r.id,
+        codeReclamation: r.codeReclamation,
+        reference: r.detailCommande?.reference ?? '—',
+        imprimeurId: r.detailCommande?.imprimeurId ?? null,
+        date: new Date(r.createdAt).toISOString().slice(0, 10),
+        produit: r.detailCommande?.produit?.nom ?? '—',
+        quantite: r.detailCommande?.quantite ?? 0,
+        prixUnitaire: r.detailCommande?.prixUnitaire ?? '0',
+        statut: r.detailCommande?.statut ?? '—',
+        description: r.description ?? '—',
+        imagePath: r.imagePath,
+      }));
+
+      setReclamations(recFormate);
+    } catch (err) {
+      console.error('Erreur chargement réclamations :', err);
+      setError("Une erreur s'est produite lors du chargement");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cloreReclamation = async (id: number) => {
+    try {
+      await reclamationService.closeReclamation(id);
+      loadAll();
+    } catch (err) {
+      console.error('Erreur clôture :', err);
+      setError("Impossible de clore la réclamation");
+    }
+  };
+
+  const remboursementReclamation = async (id: number) => {
+    try {
+      await reclamationService.refundReclamation(id);
+      loadAll();
+    } catch (err) {
+      console.error('Erreur remboursement :', err);
+      setError("Impossible de rembourser la réclamation");
+    }
+  };
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  if (loading) return <p>Chargement...</p>;
+  if (error) return <p style={{ color: 'red' }}>{error}</p>;
 
   return (
     <div style={{ background: '#fff', padding: '20px', borderRadius: '8px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ background: '#f1f1f1' }}>
           <tr>
-            <th style={thStyle}>ID</th>
-            <th style={thStyle}>
-              Type{' '}
-              <button onClick={() => trier('type')} style={sortBtnStyle}>
-                {colonneTriee === 'type' ? (triAsc ? '⬆️' : '⬇️') : '⇅'}
-              </button>
-            </th>
-            <th style={thStyle}>
-              Date{' '}
-              <button onClick={() => trier('date')} style={sortBtnStyle}>
-                {colonneTriee === 'date' ? (triAsc ? '⬆️' : '⬇️') : '⇅'}
-              </button>
-            </th>
-            <th style={thStyle}>Produit</th>
+            <th style={thStyle}>Code</th>
+            <th style={thStyle}>Réf. Détail</th>
+            <th style={thStyle}>Imprimeur</th>
+            <th style={thStyle}>Date</th>
+            <th style={thStyle}>Actions</th>
           </tr>
         </thead>
         <tbody>
-          {donneesTriees.map(sig => (
-            <React.Fragment key={sig.id}>
+          {donneesTriees.map(rec => (
+            <React.Fragment key={rec.id}>
               <tr
-                style={{ cursor: 'pointer', background: selectionId === sig.id ? '#e6f7ff' : 'transparent' }}
-                onClick={() => setSelectionId(selectionId === sig.id ? null : sig.id)}
+                style={{ cursor: 'pointer', background: selectionId === rec.id ? '#e6f7ff' : 'transparent' }}
+                onClick={() => setSelectionId(selectionId === rec.id ? null : rec.id)}
               >
-                <td style={tdStyle}>{sig.id}</td>
-                <td style={tdStyle}>{sig.type}</td>
-                <td style={tdStyle}>{sig.date}</td>
-                <td style={tdStyle}>{sig.produit}</td>
+                <td style={tdStyle}>{rec.codeReclamation}</td>
+                <td style={tdStyle}>{rec.reference}</td>
+                <td style={tdStyle}>{rec.imprimeurId ?? '—'}</td>
+                <td style={tdStyle}>{new Date(rec.date).toLocaleDateString('fr-FR')}</td>
+                <td style={tdStyle}>
+                  <button onClick={e => { e.stopPropagation(); remboursementReclamation(rec.id); }} style={actionBtn}>
+                    💸 Rembourse
+                  </button>
+                  <button onClick={e => { e.stopPropagation(); cloreReclamation(rec.id); }} style={closeBtn}>
+                    ✅ Clore
+                  </button>
+                </td>
               </tr>
-              {selectionId === sig.id && (
+              {selectionId === rec.id && (
                 <tr>
-                  <td colSpan={4} style={{ padding: 0 }}>
-                    <div style={{ 
-                        padding: '20px', 
-                        background: '#fafafa', 
-                        borderTop: '1px solid #ccc', 
-                        animation: 'fadeIn 0.3s ease-in-out',
-                        border: '1px solid rgb(204, 204, 204)',
-                        borderBottomLeftRadius: '20px',
-                        borderBottomRightRadius: '20px',
-                         /*background: rgb(231 231 231);*/
-                    }}>
-                      <h4>🛠 Gestion du signalement #{sig.id}</h4>
-                      <p><strong>Type :</strong> {sig.type}</p>
-                      <p><strong>Date :</strong> {sig.date}</p>
-                      <p><strong>Produit :</strong> {sig.produit}</p>
-                      <button
-                        onClick={() => setSelectionId(null)}
-                        style={{ marginTop: '10px', padding: '8px 16px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px' }}
-                      >
-                        Fermer
-                      </button>
+                  <td colSpan={5} style={{ padding: 0 }}>
+                    <div style={{ padding: '20px', background: '#fafafa', border: '1px solid #ccc', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px' }}>
+                      <h4>🛠 Détails réclamation {rec.codeReclamation}</h4>
+                      <p><strong>Description :</strong> {rec.description}</p>
+                      {rec.imagePath && (
+                        <p><strong>Image :</strong> <a href={rec.imagePath} target="_blank" rel="noopener noreferrer">Voir</a></p>
+                      )}
+                      <p><strong>Produit :</strong> {rec.produit}</p>
+                      <p><strong>Quantité :</strong> {rec.quantite}</p>
+                      <p><strong>Prix unitaire :</strong> {rec.prixUnitaire} €</p>
+                      <p><strong>Statut :</strong> {rec.statut}</p>
+                      <div style={{ marginTop: '15px' }}>
+                        <button onClick={() => remboursementReclamation(rec.id)} style={actionBtn}>💸 Rembourser</button>
+                        <button onClick={() => cloreReclamation(rec.id)} style={closeBtn}>✅ Clore</button>
+                        <button onClick={() => setSelectionId(null)} style={closeDetailBtn}>Fermer</button>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -105,18 +159,13 @@ const TableauReclamation: React.FC<Props> = ({ donnees }) => {
 export default TableauReclamation;
 
 const thStyle: React.CSSProperties = {
-  padding: '10px',
-  textAlign: 'left'
+  padding: '10px', textAlign: 'left', borderBottom: '1px solid #ddd'
 };
-
 const tdStyle: React.CSSProperties = {
-  padding: '10px',
-  borderBottom: '1px solid #eee'
+  padding: '10px', borderBottom: '1px solid #eee'
 };
-
-const sortBtnStyle: React.CSSProperties = {
-  background: 'transparent',
-  border: 'none',
-  cursor: 'pointer',
-  fontSize: '1em'
+const actionBtn: React.CSSProperties = {
+  padding: '6px 12px', background: '#ffc107', color: '#333', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '6px'
 };
+const closeBtn: React.CSSProperties = { ...actionBtn, background: '#28a745', color: '#fff' };
+const closeDetailBtn: React.CSSProperties = { padding: '6px 12px', background: '#dc3545', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginLeft: '8px' };

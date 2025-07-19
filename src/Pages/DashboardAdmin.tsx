@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import GestionRecettes from './AdminPages/GestionRecettes';
 import GestionProduits from './AdminPages/GestionProduits';
 import GestionImprimeurs from './AdminPages/GestionImprimeurs';
 import GestionSignalement from './AdminPages/GestionSignalement';
-import CommandEnCours from './ImprimeurPage/CommandEnCours';
 import GestionCommandesEnCours from './AdminPages/commandEnCours';
 
 const DashboardAdmin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('recettes');
+  const [activeTab, setActiveTab] = useState('produits');
 
   return (
     <div className="dashboard-page">
@@ -15,9 +13,6 @@ const DashboardAdmin: React.FC = () => {
 
       {/* Menu */}
       <div className="dashboard-tabs" style={{ marginTop: '50px' }}>
-          <button className={`tab-button ${activeTab === 'recettes' ? 'active' : ''}`} onClick={() => setActiveTab('recettes')}>
-            📊 Recettes
-          </button>
           <button className={`tab-button ${activeTab === 'produits' ? 'active' : ''}`} onClick={() => setActiveTab('produits')}>
             📦 Produits
           </button>
@@ -34,9 +29,6 @@ const DashboardAdmin: React.FC = () => {
 
       {/* Contenu */}
       <div style={{ padding: '20px', flex: 1 }}>
-        {activeTab === 'recettes' && (
-          <GestionRecettes/>
-        )}
 
         {activeTab === 'produits' && (
           <GestionProduits/>

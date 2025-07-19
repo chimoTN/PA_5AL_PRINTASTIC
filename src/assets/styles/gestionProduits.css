@@ -1,47 +1,144 @@
-/* GestionProduits.css */
-.produits-container {
-  padding: 20px;
-  background: #f0f4f8;
-  min-height: 100vh;
-}
-.input-recherche {
-  padding: 8px;
-  width: 300px;
-  margin-bottom: 10px;
-}
-.produits-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: #fff;
-  border-radius: 8px;
-  overflow: hidden;
-}
-.produits-table th,
-.produits-table td {
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-}
-.produits-table th input {
-  width: 100%;
-  margin-top: 5px;
-}
-.form-ajout {
-  margin-top: 30px;
-  background: #fff;
-  padding: 20px;
-  border-radius: 8px;
-}
-.form-ajout input {
-  display: block;
-  margin-bottom: 10px;
-  padding: 8px;
-  width: 100%;
-}
-.dropzone {
-  border: 2px dashed #007bff;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 10px;
-  background: #f8faff;
-  text-align: center;
-}
+import React, { useEffect, useState, useRef } from 'react';
+import { produitService } from '../../services/produit.service';
+import '@/assets/styles/gestionProduits.css';
+
+const GestionProduits: React.FC = () => {
+  const [produits, setProduits] = useState<any[]>([]);
+  const [filtre, setFiltre] = useState('');
+  const [recherche, setRecherche] = useState('');
+  const [afficherFormulaire, setAfficherFormulaire] = useState(false);
+  const [modeEdition, setModeEdition] = useState(false);
+  const [produitEnCours, setProduitEnCours] = useState<any | null>(null);
+
+  const [formProduit, setFormProduit] = useState<any>({
+    nom: '',
+    description: '',
+    prix: '',
+    categorie: '',
+    popularite: '',
+    image: null,
+    fichier3D: null,
+  });
+
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const modelInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchProduits = async () => {
+    try {
+      const data = await produitService.getAll();
+      setProduits(data);
+    } catch (error) {
+      console.error('Erreur chargement produits:', error);
+    }
+  };
+
+  useEffect(() => { fetchProduits(); }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormProduit((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFormProduit((prev: any) => ({ ...prev, image: file }));
+  };
+
+  const handleModelChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setFormProduit((prev: any) => ({ ...prev, fichier3D: file }));
+  };
+
+  const isFormValid = Boolean(
+    formProduit.nom &&
+    formProduit.description &&
+    formProduit.prix &&
+    formProduit.categorie &&
+    formProduit.popularite
+  );
+
+  const handleAjouterOuModifier = async () => {
+    const formData = new FormData();
+    Object.entries(formProduit).forEach(([key, value]) => {
+      if (value) formData.append(key, value);
+    });
+
+    try {
+      if (modeEdition && produitEnCours) {
+        await produitService.update(produitEnCours.id, formData);
+      } else {
+        await produitService.create(formData);
+      }
+      resetForm();
+      fetchProduits();
+    } catch (err) {
+      console.error('Erreur sauvegarde produit :', err);
+    }
+  };
+
+  const handleSupprimer = async (id: number) => {
+    try {
+      await produitService.delete(id);
+      fetchProduits();
+    } catch (error) {
+      console.error('Erreur suppression :', error);
+    }
+  };
+
+  const handleModifier = (p: any) => {
+    setFormProduit({
+      nom: p.nom,
+      description: p.description,
+      prix: p.prix,
+      categorie: p.categorie,
+      popularite: p.popularite,
+      image: null,
+      fichier3D: null,
+    });
+    setProduitEnCours(p);
+    setModeEdition(true);
+    setAfficherFormulaire(true);
+  };
+
+  const resetForm = () => {
+    setFormProduit({ nom: '', description: '', prix: '', categorie: '', popularite: '', image: null, fichier3D: null });
+    setModeEdition(false);
+    setProduitEnCours(null);
+    setAfficherFormulaire(false);
+  };
+
+  const produitsFiltres = produits
+    .filter(p => (!filtre || p.nom.toLowerCase().includes(filtre.toLowerCase())))
+    .filter(p => p.nom.toLowerCase().includes(recherche.toLowerCase()));
+
+  return (
+    <div className="produits-container">
+      <h2>Gestion des produits</h2>
+      
+      <table className="produits-table card">
+        <thead>
+          <tr>
+            <th>Nom<br /><input value={filtre} onChange={e => setFiltre(e.target.value)} placeholder="Filtrer" /></th>
+            <th>Prix</th>
+            <th>Catégorie</th>
+            <th>Popularité</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {produitsFiltres.map(p => (
+            <tr key={p.id}>
+              <td>{p.nom}</td>
+              <td>{p.prix} €</td>
+              <td>{p.categorie}</td>
+              <td>{p.popularite}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+    </div>
+  );
+};
+
+export default GestionProduits;
