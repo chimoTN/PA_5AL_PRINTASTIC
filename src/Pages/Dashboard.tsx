@@ -6,7 +6,7 @@ import ProductFileUpload from '../components/ProductFileUpload';
 import '../assets/styles/Dashboard.css';
 import FilesClientList from '../components/FilesClientList';
 import { useFilesClient } from '../hooks/useFilesClient';
-import { debugAuth, testAuth, testMyModels, testAllAuthEndpoints, testCompleteAuth } from '../utilis/authDebug';
+import { debugAuth, testAuth, testMyModels, testAllAuthEndpoints, testCompleteAuth, forceLogout, testAuthWithCleanup } from '../utilis/authDebug';
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -134,6 +134,22 @@ Vérifiez les logs dans la console (F12).
             style={{ marginRight: '10px' }}
           >
             <i className="fas fa-bug"></i> Debug Auth
+          </button>
+          
+          <button 
+            onClick={forceLogout}
+            className="btn btn-danger btn-sm"
+            style={{ marginRight: '10px' }}
+          >
+            <i className="fas fa-sign-out-alt"></i> Force Logout
+          </button>
+          
+          <button 
+            onClick={testAuthWithCleanup}
+            className="btn btn-primary btn-sm"
+            style={{ marginRight: '10px' }}
+          >
+            <i className="fas fa-broom"></i> Test avec Nettoyage
           </button>
           
           <button 

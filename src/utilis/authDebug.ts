@@ -24,8 +24,50 @@ export const debugAuth = () => {
       console.error('❌ Erreur parsing user data:', e);
     }
   } else {
-    console.log('❌ Aucun utilisateur trouvé');
+    console.log('❌ Aucun utilisateur connecté');
   }
+};
+
+// ✅ NOUVELLE FONCTION : Déconnexion forcée
+export const forceLogout = () => {
+  console.log('🔄 FORCE LOGOUT - Nettoyage complet...');
+  
+  // Nettoyer localStorage
+  localStorage.removeItem('user');
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('token');
+  
+  // Nettoyer tous les cookies liés à l'authentification
+  const cookiesToDelete = ['connect.sid', 'debug_session', 'test_samesite', 'test_visible'];
+  
+  cookiesToDelete.forEach(cookieName => {
+    // Supprimer avec différents domaines et chemins
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.onrender.com;`;
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=pa-5al-printastic.onrender.com;`;
+    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=projet3dback.onrender.com;`;
+  });
+  
+  console.log('✅ Force logout terminé - cookies et localStorage nettoyés');
+  console.log('🍪 Cookies après nettoyage:', document.cookie);
+};
+
+// ✅ NOUVELLE FONCTION : Test complet avec déconnexion préalable
+export const testAuthWithCleanup = async () => {
+  console.log('🧪 TEST COMPLET AVEC NETTOYAGE PRÉALABLE...');
+  
+  // 1. Déconnexion forcée
+  forceLogout();
+  
+  // 2. Attendre un peu pour que les cookies soient supprimés
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  
+  // 3. Lancer le test d'authentification
+  console.log('🧪 Début du test d\'authentification après nettoyage...');
+  
+  // Ici vous pouvez appeler votre fonction de test d'authentification
+  // ou rediriger vers la page de connexion
+  window.location.href = '/login';
 };
 
 // ✅ Nouvelle fonction pour tester l'authentification
