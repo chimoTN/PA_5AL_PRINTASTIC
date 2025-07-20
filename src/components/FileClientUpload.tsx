@@ -127,7 +127,7 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
     }
 
     try {
-      // console.log('🔄 Début de l\'upload...');
+      console.log('🔄 Début de l\'upload...');
       
       // ✅ CORRECTION : Utiliser les bons noms de propriétés
       const uploadData: FileClientUploadData = {
@@ -136,28 +136,30 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
         description: description.trim(),           // ✅ OK
         materiauId: selectedMaterial.id,           // ✅ CORRECTION : "materiauId" au lieu de "idMatériau"
         nomPersonnalise: customName.trim() || undefined, // ✅ CORRECTION : "nomPersonnalise" au lieu de "nom"
-        pays: country                              // ✅ OK
+        pays: country,                             // ✅ OK
+        necessiteSupports: false                   // ✅ AJOUTÉ : valeur par défaut
       };
 
-      // console.log('📦 Données d\'upload:', {
-      //   fileName: uploadData.fichier.name,
-      //   customName: uploadData.nomPersonnalise,
-      //   displayName: getDisplayName(selectedFile, customName),
-      //   fileSize: `${(uploadData.fichier.size / 1024 / 1024).toFixed(2)}MB`,
-      //   scaling: uploadData.scaling,
-      //   description: uploadData.description,
-      //   materiauId: uploadData.materiauId,
-      //   pays: uploadData.pays
-      // });
+      console.log('📦 Données d\'upload:', {
+        fileName: uploadData.fichier.name,
+        customName: uploadData.nomPersonnalise,
+        displayName: getDisplayName(selectedFile, customName),
+        fileSize: `${(uploadData.fichier.size / 1024 / 1024).toFixed(2)}MB`,
+        scaling: uploadData.scaling,
+        description: uploadData.description,
+        materiauId: uploadData.materiauId,
+        pays: uploadData.pays,
+        necessiteSupports: uploadData.necessiteSupports
+      });
 
       const result = await uploadFile(uploadData, (progressValue) => {
         console.log(`📊 Progression: ${progressValue}%`);
       });
       
-      // console.log('🔍 Résultat upload:', result);
+      console.log('🔍 Résultat upload:', result);
       
       if (result && result.success) {
-        // console.log('✅ Upload réussi:', result);
+        console.log('✅ Upload réussi:', result);
         handleReset();
         onUploadSuccess?.(result);
       } else {
@@ -168,6 +170,7 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
       
       let errorMsg = err.message || 'Erreur lors de l\'upload';
       
+      // ✅ GESTION D'ERREUR DÉTAILLÉE
       if (err.message?.includes('session') || err.message?.includes('401')) {
         errorMsg = 'Votre session a expiré. Veuillez vous reconnecter.';
       } else if (err.message?.includes('422')) {
@@ -176,6 +179,18 @@ const FileClientUpload: React.FC<FileClientUploadProps> = ({
         errorMsg = 'Fichier trop volumineux.';
       } else if (err.message?.includes('415')) {
         errorMsg = 'Format de fichier non supporté.';
+      } else if (err.message?.includes('400')) {
+        errorMsg = 'Paramètres manquants ou invalides.';
+      } else if (err.message?.includes('500')) {
+        errorMsg = 'Erreur serveur. Veuillez réessayer.';
+      } else if (err.message?.includes('ENOENT')) {
+        errorMsg = 'Erreur de stockage. Veuillez réessayer.';
+      } else if (err.message?.includes('Matériau requis')) {
+        errorMsg = 'Veuillez sélectionner un matériau.';
+      } else if (err.message?.includes('Scaling requis')) {
+        errorMsg = 'Veuillez spécifier un scaling.';
+      } else if (err.message?.includes('Scaling invalide')) {
+        errorMsg = 'Le scaling doit être entre 10% et 1000%.';
       }
       
       setValidationErrors(prev => ({ ...prev, file: errorMsg }));

@@ -26,6 +26,7 @@ interface FileClientUploadData {
   materiauId: number;
   nomPersonnalise?: string;
   pays: string;
+  necessiteSupports?: boolean;
 }
 
 export interface FileClientUploadResponse {
@@ -72,55 +73,99 @@ export const filesClientService = {
     onProgress?: (progress: number) => void
   ): Promise<FileClientUploadResponse> {
     try {
-      console.log('📤 Début uploadFileClient');
-      
-      const formData = new FormData();
-      formData.append('file', uploadData.fichier);
-      formData.append('scaling', uploadData.scaling.toString());
-      formData.append('description', uploadData.description);
-      formData.append('materiauId', uploadData.materiauId.toString());
-      formData.append('pays', uploadData.pays);
-      
-      if (uploadData.nomPersonnalise?.trim()) {
-        formData.append('nomPersonnalise', uploadData.nomPersonnalise.trim());
+      console.log('🔄 Début upload fichier client:', {
+        fileName: uploadData.fichier.name,
+        fileSize: `${(uploadData.fichier.size / 1024 / 1024).toFixed(2)}MB`,
+        scaling: uploadData.scaling,
+        materiauId: uploadData.materiauId
+      });
+
+      // ✅ VALIDATION PRÉALABLE
+      if (!uploadData.fichier) {
+        throw new Error('Aucun fichier fourni');
       }
 
+      if (uploadData.fichier.size > 200 * 1024 * 1024) { // 200MB max
+        throw new Error('Fichier trop volumineux (maximum 200MB)');
+      }
+
+      // ✅ CRÉATION DU FORM DATA
+      const formData = new FormData();
+      formData.append('file', uploadData.fichier);
+      formData.append('materiauId', uploadData.materiauId.toString());
+      formData.append('scaling', uploadData.scaling.toString());
+      formData.append('description', uploadData.description || '');
+      formData.append('pays', uploadData.pays || 'France');
+      
+      // ✅ Ajouter le nom personnalisé s'il est fourni
+      if (uploadData.nomPersonnalise) {
+        formData.append('nomPersonnalise', uploadData.nomPersonnalise);
+      }
+
+      // ✅ AJOUTER LES PARAMÈTRES OPTIONNELS
+      if (uploadData.necessiteSupports !== undefined) {
+        formData.append('necessiteSupports', uploadData.necessiteSupports.toString());
+      }
+
+      console.log('📦 FormData créé avec:', {
+        file: uploadData.fichier.name,
+        materiauId: uploadData.materiauId,
+        scaling: uploadData.scaling,
+        description: uploadData.description?.substring(0, 50) + '...',
+        pays: uploadData.pays,
+        nomPersonnalise: uploadData.nomPersonnalise
+      });
+
+      // ✅ UPLOAD AVEC GESTION D'ERREUR AMÉLIORÉE
       const response = await baseService.request<FileClientUploadResponse>(
         '/modele3DClient/upload',
         {
           method: 'POST',
-          body: formData,
-          headers: {}
+          body: formData
         },
         onProgress
       );
 
       console.log('✅ Upload réussi:', response);
-      return response;
-      
+
+      if (response.success) {
+        return {
+          success: true,
+          message: response.message || 'Fichier uploadé avec succès',
+          data: response.data
+        };
+      } else {
+        throw new Error(response.message || 'Échec de l\'upload');
+      }
+
     } catch (error: any) {
       console.error('❌ Erreur upload fichier client:', error);
       
-      // ✅ IMMÉDIAT : Vérifier les erreurs 401
-      checkAuthError(error, 'uploadFileClient');
+      // ✅ GESTION D'ERREUR DÉTAILLÉE
+      let errorMessage = 'Erreur lors de l\'upload';
       
-      // ✅ Gestion des autres erreurs
-      const errorMessages: Record<string, string> = {
-        '413': 'Le fichier est trop volumineux (max 50MB)',
-        '415': 'Format de fichier non supporté (.stl, .obj, .ply, .3mf, .amf)',
-        '400': 'Données d\'upload invalides',
-        '500': 'Erreur serveur lors de l\'upload'
-      };
-      
-      const errorCode = Object.keys(errorMessages).find(code => 
-        error.message.includes(code)
-      );
-      
-      if (errorCode) {
-        throw new Error(errorMessages[errorCode]);
+      if (error.message) {
+        if (error.message.includes('session') || error.message.includes('401')) {
+          errorMessage = 'Votre session a expiré. Veuillez vous reconnecter.';
+        } else if (error.message.includes('413')) {
+          errorMessage = 'Fichier trop volumineux. Taille maximum: 200MB.';
+        } else if (error.message.includes('415')) {
+          errorMessage = 'Format de fichier non supporté. Formats acceptés: STL, OBJ, PLY, 3MF, AMF.';
+        } else if (error.message.includes('422')) {
+          errorMessage = 'Données invalides. Vérifiez vos paramètres.';
+        } else if (error.message.includes('500')) {
+          errorMessage = 'Erreur serveur. Veuillez réessayer plus tard.';
+        } else if (error.message.includes('ENOENT')) {
+          errorMessage = 'Erreur de stockage. Veuillez réessayer.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       
-      throw error;
+      return {
+        success: false,
+        message: errorMessage
+      };
     }
   },
 

@@ -6,7 +6,7 @@ import ProductFileUpload from '../components/ProductFileUpload';
 import '../assets/styles/Dashboard.css';
 import FilesClientList from '../components/FilesClientList';
 import { useFilesClient } from '../hooks/useFilesClient';
-import { debugAuth, testAuth, testMyModels, testAllAuthEndpoints, testCompleteAuth, forceLogout, testAuthWithCleanup, testManualCookieManagement, checkSessionCookies } from '../utilis/authDebug';
+import { debugAuth, testSimpleAuth, forceLogout, checkSessionCookies } from '../utilis/authDebug';
 
 const Dashboard: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
@@ -50,16 +50,16 @@ const Dashboard: React.FC = () => {
     console.log('🔍 Début du débogage d\'authentification...');
     debugAuth();
     
-    console.log('🧪 Test complet d\'authentification...');
-    const completeResult = await testCompleteAuth();
-    console.log('🧪 Résultat du test complet:', completeResult);
+    console.log('🧪 Test simple d\'authentification...');
+    const simpleResult = await testSimpleAuth();
+    console.log('🧪 Résultat du test simple:', simpleResult);
     
-    if (completeResult.success) {
+    if (simpleResult.success) {
       alert(`
-✅ TEST COMPLET RÉUSSI !
+✅ TEST SIMPLE RÉUSSI !
 
 🔑 Connexion: OK
-📋 Récupération modèles: OK
+👤 Profil: OK
 🍪 Cookies: Fonctionnels
 
 Le problème vient probablement de votre service baseService.
@@ -67,10 +67,10 @@ Vérifiez les logs dans la console (F12).
       `);
     } else {
       alert(`
-❌ TEST COMPLET ÉCHOUÉ
+❌ TEST SIMPLE ÉCHOUÉ
 
-Étape: ${completeResult.step || 'inconnue'}
-Erreur: ${completeResult.error?.message || 'Erreur inconnue'}
+Étape: ${simpleResult.step || 'inconnue'}
+Erreur: ${simpleResult.error?.message || 'Erreur inconnue'}
 
 Vérifiez les logs dans la console (F12).
       `);
@@ -144,21 +144,7 @@ Vérifiez les logs dans la console (F12).
             <i className="fas fa-sign-out-alt"></i> Force Logout
           </button>
           
-          <button 
-            onClick={testAuthWithCleanup}
-            className="btn btn-primary btn-sm"
-            style={{ marginRight: '10px' }}
-          >
-            <i className="fas fa-broom"></i> Test avec Nettoyage
-          </button>
-          
-          <button 
-            onClick={testManualCookieManagement}
-            className="btn btn-success btn-sm"
-            style={{ marginRight: '10px' }}
-          >
-            <i className="fas fa-cookie-bite"></i> Test Cookies
-          </button>
+
           
           <button 
             onClick={checkSessionCookies}

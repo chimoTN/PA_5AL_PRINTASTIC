@@ -10,75 +10,51 @@ interface ProfilResponse {
 class AuthService {
   private currentUser: AuthUser | null = null;
 
-  // ✅ NOUVELLES FONCTIONS : Gestion manuelle des cookies
-  private getSessionCookie(): string | null {
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'connect.sid') {
-        return value;
-      }
-    }
-    return null;
-  }
-
-  private setSessionCookie(sessionId: string): void {
-    // Supprimer l'ancien cookie d'abord
-    this.removeSessionCookie();
-    
-    // Créer le nouveau cookie avec les bons paramètres
-    const cookieValue = `connect.sid=${sessionId}; Max-Age=86400; Path=/; Domain=.onrender.com; Secure; SameSite=None`;
-    document.cookie = cookieValue;
-    
-    console.log('🍪 Cookie de session défini manuellement:', sessionId);
-  }
-
-  private removeSessionCookie(): void {
-    // Supprimer avec différents domaines et chemins
-    const domains = ['.onrender.com', 'pa-5al-printastic.onrender.com', 'projet3dback.onrender.com', ''];
-    const paths = ['/', '/api'];
-    
-    domains.forEach(domain => {
-      paths.forEach(path => {
-        const domainPart = domain ? `; domain=${domain}` : '';
-        document.cookie = `connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}${domainPart}`;
-      });
-    });
-    
-    console.log('🍪 Cookie de session supprimé manuellement');
-  }
-
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
+      console.log('👤 === DÉBUT CONNEXION ===');
       console.log('👤 Tentative de connexion pour:', email);
       
       // ✅ DÉCONNEXION AUTOMATIQUE AVANT CONNEXION
       console.log('🔄 Déconnexion automatique avant nouvelle connexion...');
       await this.logout();
       
+      console.log('📡 Envoi de la requête de connexion...');
       const response = await baseService.post<AuthResponse>('/auth/connexion', {
         email,
         motDePasse: password
       });
 
-      console.log('🔍 Réponse de connexion:', response);
+      console.log('🔍 Réponse de connexion reçue:', response);
 
       if (response.success && response.utilisateur) {
-        // ✅ GESTION MANUELLE DU COOKIE DE SESSION
-        if (response.sessionId) {
-          console.log('🔑 Session ID reçu du backend:', response.sessionId);
-          this.setSessionCookie(response.sessionId);
-        } else {
-          console.warn('⚠️ Aucun sessionId reçu du backend');
-        }
+        // ✅ LAISSER LE NAVIGATEUR GÉRER LES COOKIES AUTOMATIQUEMENT
+        console.log('✅ Connexion réussie - cookies gérés par le navigateur');
+        console.log('🔑 Session ID reçu:', response.sessionId);
         
-        // Vérifier que le cookie a été défini
-        const sessionCookie = this.getSessionCookie();
-        console.log('🍪 Cookie de session après connexion:', sessionCookie);
+        // Vérifier les cookies après connexion
+        console.log('🍪 === VÉRIFICATION COOKIES APRÈS CONNEXION ===');
+        console.log('🍪 Cookies disponibles:', document.cookie);
+        
+        // Chercher spécifiquement le cookie de session
+        const cookies = document.cookie.split(';');
+        const sessionCookie = cookies.find(cookie => 
+          cookie.trim().startsWith('connect.sid=')
+        );
+        
+        if (sessionCookie) {
+          console.log('✅ Cookie de session trouvé:', sessionCookie.trim());
+          const sessionId = sessionCookie.split('=')[1];
+          console.log('🔑 Session ID dans le cookie:', sessionId);
+        } else {
+          console.warn('⚠️ Cookie de session non trouvé dans document.cookie');
+        }
+        console.log('🍪 ===========================================');
         
         this.currentUser = response.utilisateur;
         localStorage.setItem('user', JSON.stringify(response.utilisateur));
         console.log('✅ Utilisateur connecté:', this.currentUser);
+        console.log('👤 === FIN CONNEXION ===');
         return response;
       }
 
@@ -103,20 +79,8 @@ class AuthService {
       localStorage.removeItem('authToken');
       localStorage.removeItem('token');
       
-      // ✅ SUPPRESSION MANUELLE DU COOKIE DE SESSION
-      this.removeSessionCookie();
-      
-      // ✅ Supprimer tous les autres cookies liés à l'authentification
-      document.cookie.split(";").forEach((c) => {
-        const eqPos = c.indexOf("=");
-        const name = eqPos > -1 ? c.substr(0, eqPos).trim() : c.trim();
-        if (name.startsWith('debug_session') || name.startsWith('test_')) {
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.onrender.com;`;
-          document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        }
-      });
-      
-      console.log('✅ Déconnexion complète effectuée (session + cookies + localStorage)');
+      // ✅ LAISSER LE NAVIGATEUR GÉRER LA SUPPRESSION DES COOKIES
+      console.log('✅ Déconnexion complète effectuée (session + localStorage)');
     }
   }
 
@@ -141,21 +105,35 @@ class AuthService {
 
   async checkSession(): Promise<boolean> {
     try {
-      console.log('🔍 Vérification session...');
+      console.log('🔍 === VÉRIFICATION SESSION ===');
+      console.log('🔍 Envoi de la requête de vérification...');
+      
+      // Vérifier les cookies avant l'envoi
+      console.log('🍪 Cookies avant vérification session:', document.cookie);
+      const sessionCookie = document.cookie.split(';').find(cookie => 
+        cookie.trim().startsWith('connect.sid=')
+      );
+      if (sessionCookie) {
+        console.log('✅ Cookie de session présent avant requête:', sessionCookie.trim());
+      } else {
+        console.warn('⚠️ Aucun cookie de session trouvé avant requête');
+      }
       
       const response = await baseService.get<ProfilResponse>('/auth/profil');
       
       if (response.success && response.utilisateur) {
         this.currentUser = response.utilisateur;
         localStorage.setItem('user', JSON.stringify(response.utilisateur));
-        console.log('✅ Session valide');
+        console.log('✅ Session valide - utilisateur récupéré:', response.utilisateur.email);
+        console.log('🔍 === FIN VÉRIFICATION SESSION ===');
         return true;
       }
       
+      console.log('❌ Session invalide - réponse échouée');
       this.logout();
       return false;
     } catch (error: any) {
-      console.warn('⚠️ Session invalide:', error.message);
+      console.warn('⚠️ Session invalide - erreur:', error.message);
       this.logout();
       return false;
     }

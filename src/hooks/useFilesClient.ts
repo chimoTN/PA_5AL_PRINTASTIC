@@ -10,11 +10,45 @@ export const useFilesClient = () => {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState<number>(0);
 
+  // ✅ Fonction pour recharger les fichiers avec timeout (définie en premier)
+  const refreshFiles = useCallback(async (showAllFiles: boolean = false) => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('🔄 Chargement des fichiers...', { showAllFiles });
+      
+      // ✅ AJOUTER UN TIMEOUT POUR ÉVITER LE CHARGEMENT INFINI
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout: Chargement trop long')), 30000); // 30 secondes
+      });
+      
+      const fetchPromise = filesClientService.getFilesClient();
+      
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as any;
+      
+      const filesList = response.data || [];
+      if (response.success) {
+        setFiles(filesList);
+        console.log('✅ Fichiers chargés:', filesList.length);
+      } else {
+        throw new Error(response.message || 'Erreur lors du chargement des fichiers');
+      }
+    } catch (error: any) {
+      console.error('❌ Erreur chargement fichiers:', error);
+      const errorMessage = error.message || 'Erreur lors du chargement des fichiers';
+      setError(errorMessage);
+      setFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // ✅ Fonction d'upload modifiée pour accepter FileClientUploadData
   const uploadFile = useCallback(async (
     uploadData: FileClientUploadData,
     onProgress?: (progress: number) => void
-  ): Promise<any> => { // Changed from FileClientUploadResponse to any
+  ): Promise<any> => {
     if (uploading) {
       throw new Error('Un upload est déjà en cours');
     }
@@ -36,8 +70,10 @@ export const useFilesClient = () => {
       
       console.log('✅ Upload terminé:', result);
       
-      // Recharger les fichiers après upload
-      await refreshFiles();
+      if (result.success) {
+        // Recharger les fichiers après upload réussi
+        await refreshFiles();
+      }
       
       return result;
       
@@ -50,36 +86,7 @@ export const useFilesClient = () => {
       setUploading(false);
       setProgress(0);
     }
-  }, [uploading]);
-
-  // ✅ Fonction pour recharger les fichiers
-  const refreshFiles = useCallback(async (showAllFiles: boolean = false) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('🔄 Chargement des fichiers...', { showAllFiles });
-      
-      // ✅ CORRECTION : Utiliser seulement getFilesClient 
-      // Le paramètre showAllFiles sera géré côté backend ou ignoré pour l'instant
-      const response = await filesClientService.getFilesClient();
-      
-      const filesList = response.data || [];
-      if (response.success) {
-        setFiles(filesList);
-        console.log('✅ Fichiers chargés:', filesList.length);
-      } else {
-        throw new Error(response.message || 'Erreur lors du chargement des fichiers');
-      }
-    } catch (error: any) {
-      console.error('❌ Erreur chargement fichiers:', error);
-      const errorMessage = error.message || 'Erreur lors du chargement des fichiers';
-      setError(errorMessage);
-      setFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  }, [uploading, refreshFiles]);
 
   // ✅ Fonction pour supprimer un fichier (améliorée)
   const deleteFile = useCallback(async (id: number) => {

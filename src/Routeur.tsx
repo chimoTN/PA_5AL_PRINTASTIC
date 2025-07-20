@@ -11,6 +11,7 @@ import Dashboard from './Pages/Dashboard';
 import CheckoutPage from './Pages/validationPanier';
 import DashboardAdmin from './Pages/DashboardAdmin';
 import DashboardImpression from './Pages/DashboardImpression';
+import CookieTest from './components/CookieTest';
 
 import Navbar from './components/Navbar';
 import CommandesClient from './Pages/CommandesClient';
@@ -25,6 +26,9 @@ export const Routeur = () => (
         <Route path="/" element={<Accueil />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/compte-suspendu" element={<CompteSuspendu />} />
+        
+        {/* ✅ ROUTE TEMPORAIRE POUR TESTER LES COOKIES */}
+        <Route path="/test-cookies" element={<CookieTest />} />
 
         {/* accessibles sans auth */}
         <Route path="/produits/ProductDetails/:id" element={<ProductDetails />} />

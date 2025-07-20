@@ -1,5 +1,5 @@
 // src/services/base.service.ts - VERSION COMPLÈTE CORRIGÉE
-import { API_BASE_URL } from '../config/env';
+import { API_BASE_URL, DEBUG_COOKIES } from '../config/env';
 
 export interface AuthUser {
   id: number;
@@ -27,39 +27,7 @@ export interface AuthContextType {
   refreshAuth: () => Promise<void>;
 }
 
-// ✅ NOUVELLE FONCTION : Récupérer le cookie de session manuellement
-const getSessionCookie = (): string | null => {
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'connect.sid') {
-      return value;
-    }
-  }
-  return null;
-};
-
-// ✅ NOUVELLE FONCTION : Construire le header Cookie manuellement
-const buildCookieHeader = (): string => {
-  const sessionCookie = getSessionCookie();
-  const cookies = [];
-  
-  if (sessionCookie) {
-    cookies.push(`connect.sid=${sessionCookie}`);
-  }
-  
-  // Ajouter les autres cookies de debug si présents
-  const debugCookies = document.cookie.split(';').filter(c => 
-    c.trim().startsWith('debug_session=') || 
-    c.trim().startsWith('test_')
-  );
-  
-  debugCookies.forEach(cookie => {
-    cookies.push(cookie.trim());
-  });
-  
-  return cookies.join('; ');
-};
+// ✅ SUPPRIMÉ: Gestion manuelle des cookies - laisser le navigateur gérer automatiquement
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -97,8 +65,8 @@ class BaseService {
   private baseURL: string;
 
   constructor() {
-    this.baseURL = API_BASE_URL || 'http://127.0.0.1:3000/api';
-    console.log('🏗️ BaseService initialisé (SESSION MODE):', this.baseURL);
+    // ✅ UTILISER LA CONFIGURATION D'ENVIRONNEMENT
+    this.baseURL = API_BASE_URL;
   }
 
   private buildUrl(endpoint: string): string {
@@ -111,12 +79,8 @@ class BaseService {
       ...options.headers,
     };
 
-    // ✅ GESTION MANUELLE DU COOKIE DE SESSION
-    const cookieHeader = buildCookieHeader();
-    if (cookieHeader) {
-      headers['Cookie'] = cookieHeader;
-      console.log('🍪 Cookie header manuel:', cookieHeader);
-    }
+    // ✅ SIMPLIFICATION: Laisser le navigateur gérer les cookies automatiquement
+    // Ne plus construire manuellement les headers de cookies
 
     return headers;
   }
@@ -129,17 +93,17 @@ class BaseService {
     const url = this.buildUrl(endpoint);
     const headers = this.prepareHeaders(options);
     
-    // 🔍 DEBUG COOKIES AVANT REQUÊTE - VERSION PRODUCTION
-    console.log('🍪 === COOKIES DEBUG PRODUCTION ===');
-    console.log('🍪 Cookies disponibles:', document.cookie);
-    console.log('🍪 Cookie de session manuel:', getSessionCookie());
-    console.log('🌍 Domain actuel:', window.location.hostname);
-    console.log('🔗 URL cible:', url);
-    console.log('🔗 Origin:', window.location.origin);
-    console.log('🔗 Protocol:', window.location.protocol);
-    console.log('🍪 ================================');
+    // 🔍 DEBUG COOKIES AVEC CONFIGURATION D'ENVIRONNEMENT
+    if (DEBUG_COOKIES) {
+      console.log('🍪 === COOKIES DEBUG SIMPLIFIÉ ===');
+      console.log('🍪 Cookies disponibles:', document.cookie);
+      console.log('🌍 Domain actuel:', window.location.hostname);
+      console.log('🔗 URL cible:', url);
+      console.log('🔗 Origin:', window.location.origin);
+      console.log('🍪 ================================');
+    }
     
-    // ✅ CORRECTION: S'assurer que credentials est toujours 'include'
+    // ✅ CONFIGURATION SIMPLE: Toujours inclure les credentials
     const requestOptions: RequestInit = {
       credentials: 'include', // 🔑 SESSIONS : Toujours inclure les cookies
       headers,
@@ -149,15 +113,15 @@ class BaseService {
     // ✅ FORCER credentials: 'include' même si options le remplace
     requestOptions.credentials = 'include';
 
-    console.log('📡 Requête SESSION PRODUCTION:', {
-      method: options.method || 'GET',
-      url,
-      hasBody: !!options.body,
-      credentials: requestOptions.credentials,
-      cookieHeader: headers['Cookie'],
-      origin: window.location.origin,
-      userAgent: navigator.userAgent
-    });
+    if (DEBUG_COOKIES) {
+      console.log('📡 Requête SESSION SIMPLIFIÉE:', {
+        method: options.method || 'GET',
+        url,
+        hasBody: !!options.body,
+        credentials: requestOptions.credentials,
+        origin: window.location.origin
+      });
+    }
 
     // Upload avec progression si nécessaire
     if (onProgress && options.body instanceof FormData) {
@@ -167,22 +131,59 @@ class BaseService {
     try {
       const response = await fetch(url, requestOptions);
       
-      console.log('📡 Réponse PRODUCTION:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries()),
-        url: response.url
-      });
+      if (DEBUG_COOKIES) {
+        console.log('📡 Réponse SIMPLIFIÉE:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          url: response.url
+        });
+      }
 
       // ✅ VÉRIFIER LES COOKIES DANS LA RÉPONSE
       const setCookieHeader = response.headers.get('Set-Cookie');
       if (setCookieHeader) {
-        console.log('🍪 Set-Cookie reçu:', setCookieHeader);
+        console.log('🍪 === COOKIE DE SESSION REÇU ===');
+        console.log('🍪 Set-Cookie header:', setCookieHeader);
+        console.log('🍪 Nombre de cookies dans le header:', setCookieHeader.split(',').length);
+        
+        // Parser le cookie de session
+        const sessionCookie = setCookieHeader.split(';')[0];
+        console.log('🍪 Cookie de session parsé:', sessionCookie);
+        
+        // Vérifier si c'est un cookie connect.sid
+        if (sessionCookie.includes('connect.sid=')) {
+          console.log('✅ Cookie de session Express détecté !');
+          const sessionId = sessionCookie.split('=')[1];
+          console.log('🔑 Session ID extrait:', sessionId);
+        }
+        console.log('🍪 ================================');
       }
       
       // 🔍 DEBUG COOKIES APRÈS RÉPONSE
-      console.log('🍪 Cookies après requête:', document.cookie);
+      if (DEBUG_COOKIES) {
+        console.log('🍪 === COOKIES STOCKÉS PAR LE NAVIGATEUR ===');
+        console.log('🍪 document.cookie complet:', document.cookie);
+        
+        // Lister tous les cookies individuellement
+        const cookies = document.cookie.split(';');
+        console.log('🍪 Nombre total de cookies:', cookies.length);
+        
+        cookies.forEach((cookie, index) => {
+          const trimmedCookie = cookie.trim();
+          if (trimmedCookie) {
+            console.log(`🍪 Cookie ${index + 1}:`, trimmedCookie);
+            
+            // Vérifier si c'est le cookie de session
+            if (trimmedCookie.startsWith('connect.sid=')) {
+              console.log('✅ Cookie de session trouvé dans le navigateur !');
+              const sessionId = trimmedCookie.split('=')[1];
+              console.log('🔑 Session ID stocké:', sessionId);
+            }
+          }
+        });
+        console.log('🍪 ===========================================');
+      }
       
       if (!response.ok) {
         let errorMessage = `Erreur HTTP ${response.status}`;
@@ -191,7 +192,6 @@ class BaseService {
           case 401:
             errorMessage = 'Session expirée - veuillez vous reconnecter';
             console.error('🔒 ERREUR 401 - Session expirée ou invalide');
-            console.error('🔒 Headers de réponse:', Object.fromEntries(response.headers.entries()));
             break;
           case 403:
             errorMessage = 'Accès refusé';
@@ -222,7 +222,7 @@ class BaseService {
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error('❌ Erreur requête:', error);
+      console.error('❌ Erreur dans la requête:', error);
       throw error;
     }
   }

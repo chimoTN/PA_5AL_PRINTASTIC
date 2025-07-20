@@ -1,6 +1,6 @@
 // src/utils/authDebug.ts
 export const debugAuth = () => {
-  console.log('🔍 DEBUG AUTHENTIFICATION PRODUCTION:');
+  console.log('🔍 DEBUG AUTHENTIFICATION SIMPLIFIÉ:');
   console.log('📝 localStorage items:', {
     authToken: localStorage.getItem('authToken'),
     token: localStorage.getItem('token'),
@@ -28,207 +28,9 @@ export const debugAuth = () => {
   }
 };
 
-// ✅ NOUVELLE FONCTION : Déconnexion forcée
-export const forceLogout = () => {
-  console.log('🔄 FORCE LOGOUT - Nettoyage complet...');
-  
-  // Nettoyer localStorage
-  localStorage.removeItem('user');
-  localStorage.removeItem('authToken');
-  localStorage.removeItem('token');
-  
-  // Nettoyer tous les cookies liés à l'authentification
-  const cookiesToDelete = ['connect.sid', 'debug_session', 'test_samesite', 'test_visible'];
-  
-  cookiesToDelete.forEach(cookieName => {
-    // Supprimer avec différents domaines et chemins
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.onrender.com;`;
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=pa-5al-printastic.onrender.com;`;
-    document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=projet3dback.onrender.com;`;
-  });
-  
-  console.log('✅ Force logout terminé - cookies et localStorage nettoyés');
-  console.log('🍪 Cookies après nettoyage:', document.cookie);
-};
-
-// ✅ NOUVELLE FONCTION : Test complet avec déconnexion préalable
-export const testAuthWithCleanup = async () => {
-  console.log('🧪 TEST COMPLET AVEC NETTOYAGE PRÉALABLE...');
-  
-  // 1. Déconnexion forcée
-  forceLogout();
-  
-  // 2. Attendre un peu pour que les cookies soient supprimés
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // 3. Lancer le test d'authentification
-  console.log('🧪 Début du test d\'authentification après nettoyage...');
-  
-  // Ici vous pouvez appeler votre fonction de test d'authentification
-  // ou rediriger vers la page de connexion
-  window.location.href = '/login';
-};
-
-// ✅ NOUVELLE FONCTION : Test de gestion manuelle des cookies
-export const testManualCookieManagement = () => {
-  console.log('🧪 TEST GESTION MANUELLE DES COOKIES...');
-  
-  // 1. Récupérer le cookie actuel
-  const getSessionCookie = (): string | null => {
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      const [name, value] = cookie.trim().split('=');
-      if (name === 'connect.sid') {
-        return value;
-      }
-    }
-    return null;
-  };
-  
-  const currentCookie = getSessionCookie();
-  console.log('🍪 Cookie de session actuel:', currentCookie);
-  
-  // 2. Tester la définition manuelle d'un cookie
-  const testSessionId = 'test_manual_session_' + Date.now();
-  const setSessionCookie = (sessionId: string): void => {
-    const cookieValue = `connect.sid=${sessionId}; Max-Age=86400; Path=/; Domain=.onrender.com; Secure; SameSite=None`;
-    document.cookie = cookieValue;
-    console.log('🍪 Cookie de test défini:', sessionId);
-  };
-  
-  setSessionCookie(testSessionId);
-  
-  // 3. Vérifier que le cookie a été défini
-  const newCookie = getSessionCookie();
-  console.log('🍪 Cookie de session après définition manuelle:', newCookie);
-  
-  // 4. Tester la suppression manuelle
-  const removeSessionCookie = (): void => {
-    const domains = ['.onrender.com', 'pa-5al-printastic.onrender.com', 'projet3dback.onrender.com', ''];
-    const paths = ['/', '/api'];
-    
-    domains.forEach(domain => {
-      paths.forEach(path => {
-        const domainPart = domain ? `; domain=${domain}` : '';
-        document.cookie = `connect.sid=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=${path}${domainPart}`;
-      });
-    });
-    
-    console.log('🍪 Cookie de session supprimé manuellement');
-  };
-  
-  removeSessionCookie();
-  
-  // 5. Vérifier la suppression
-  const finalCookie = getSessionCookie();
-  console.log('🍪 Cookie de session après suppression:', finalCookie);
-  
-  console.log('✅ Test de gestion manuelle des cookies terminé');
-};
-
-// ✅ NOUVELLE FONCTION : Vérifier les cookies de session
-export const checkSessionCookies = () => {
-  console.log('🔍 VÉRIFICATION DES COOKIES DE SESSION...');
-  
-  const cookies = document.cookie.split(';');
-  const sessionCookies = [];
-  
-  cookies.forEach(cookie => {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'connect.sid') {
-      sessionCookies.push({ name, value });
-    }
-  });
-  
-  console.log('🍪 Cookies de session trouvés:', sessionCookies);
-  console.log('🍪 Tous les cookies:', document.cookie);
-  
-  if (sessionCookies.length === 0) {
-    console.log('❌ Aucun cookie de session trouvé');
-  } else if (sessionCookies.length > 1) {
-    console.log('⚠️ Plusieurs cookies de session trouvés - possible conflit');
-  } else {
-    console.log('✅ Un seul cookie de session trouvé');
-  }
-};
-
-// ✅ Nouvelle fonction pour tester l'authentification
-export const testAuth = async () => {
-  console.log('🧪 TEST AUTHENTIFICATION...');
-  
-  try {
-    const response = await fetch('https://projet3dback.onrender.com/api/auth/profil', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log('🧪 Test auth response:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries())
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('🧪 Test auth success:', data);
-      return true;
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      console.log('🧪 Test auth failed:', errorData);
-      return false;
-    }
-  } catch (error) {
-    console.error('🧪 Test auth error:', error);
-    return false;
-  }
-};
-
-// ✅ Fonction spécifique pour tester l'endpoint my-models
-export const testMyModels = async () => {
-  console.log('🧪 TEST ENDPOINT MY-MODELS...');
-  
-  try {
-    const response = await fetch('https://projet3dback.onrender.com/api/modele3DClient/my-models', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    console.log('🧪 Test my-models response:', {
-      status: response.status,
-      statusText: response.statusText,
-      ok: response.ok,
-      headers: Object.fromEntries(response.headers.entries()),
-      url: response.url
-    });
-    
-    if (response.ok) {
-      const data = await response.json();
-      console.log('🧪 Test my-models success:', data);
-      return { success: true, data };
-    } else {
-      const errorData = await response.json().catch(() => ({}));
-      console.log('🧪 Test my-models failed:', errorData);
-      return { success: false, error: errorData };
-    }
-  } catch (error) {
-    console.error('🧪 Test my-models error:', error);
-    return { success: false, error };
-  }
-};
-
-// ✅ Test complet avec connexion puis récupération des modèles
-export const testCompleteAuth = async () => {
-  console.log('🧪 TEST COMPLET AUTHENTIFICATION...');
+// ✅ NOUVELLE FONCTION : Test de connexion simplifié
+export const testSimpleAuth = async () => {
+  console.log('🧪 TEST CONNEXION SIMPLIFIÉ...');
   
   try {
     // 1. Connexion
@@ -274,105 +76,79 @@ export const testCompleteAuth = async () => {
     
     if (!hasSessionCookie) {
         console.error('❌ PROBLÈME: Cookie de session manquant !');
-        console.error('❌ Le backend doit configurer sameSite: "none" pour cross-origin');
+        return { success: false, step: 'cookie_check', error: 'Cookie de session manquant' };
     } else {
         console.log('✅ Cookie de session présent');
     }
     
-    // 4. Récupération des modèles
-    console.log('📋 Étape 2: Récupération des modèles...');
-    const modelsResponse = await fetch('https://projet3dback.onrender.com/api/modele3DClient/my-models', {
+    // 5. Test de récupération du profil
+    console.log('👤 Étape 2: Récupération du profil...');
+    const profileResponse = await fetch('https://projet3dback.onrender.com/api/auth/profil', {
       method: 'GET',
       credentials: 'include',
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Accept': 'application/json'
       }
     });
     
-    console.log('📋 Models response:', {
-      status: modelsResponse.status,
-      ok: modelsResponse.ok,
-      headers: Object.fromEntries(modelsResponse.headers.entries())
+    console.log('👤 Profile response:', {
+      status: profileResponse.status,
+      ok: profileResponse.ok
     });
     
-    if (modelsResponse.ok) {
-      const modelsData = await modelsResponse.json();
-      console.log('📋 Models success:', modelsData);
-      return { 
-        success: true, 
-        login: loginData, 
-        models: modelsData,
-        setCookieHeader: setCookieHeader
-      };
-    } else {
-      const errorData = await modelsResponse.json().catch(() => ({}));
-      console.error('📋 Models failed:', errorData);
-      return { success: false, step: 'models', error: errorData, setCookieHeader: setCookieHeader };
+    if (!profileResponse.ok) {
+      const errorData = await profileResponse.json().catch(() => ({}));
+      console.error('👤 Profile failed:', errorData);
+      return { success: false, step: 'profile', error: errorData };
     }
     
+    const profileData = await profileResponse.json();
+    console.log('👤 Profile success:', profileData);
+    
+    console.log('✅ Test de connexion simplifié réussi !');
+    return { success: true, loginData, profileData };
+    
   } catch (error) {
-    console.error('🧪 Test complet error:', error);
-    return { success: false, error };
+    console.error('❌ Erreur lors du test:', error);
+    return { success: false, step: 'error', error };
   }
 };
 
-// ✅ Fonction pour tester tous les endpoints d'authentification
-export const testAllAuthEndpoints = async () => {
-  console.log('🧪 TEST TOUS LES ENDPOINTS AUTH...');
+// ✅ NOUVELLE FONCTION : Déconnexion forcée simplifiée
+export const forceLogout = () => {
+  console.log('🔄 FORCE LOGOUT SIMPLIFIÉ - Nettoyage complet...');
   
-  const endpoints = [
-    { name: 'Profil', url: '/auth/profil' },
-    { name: 'My-Models', url: '/modele3DClient/my-models' },
-    { name: 'All-Models', url: '/modele3DClient?showAll=true' }
-  ];
+  // Nettoyer localStorage
+  localStorage.removeItem('user');
+  localStorage.removeItem('authToken');
+  localStorage.removeItem('token');
   
-  const results = [];
+  console.log('✅ Force logout terminé - localStorage nettoyé');
+  console.log('🍪 Cookies après nettoyage:', document.cookie);
+};
+
+// ✅ NOUVELLE FONCTION : Vérifier les cookies de session
+export const checkSessionCookies = () => {
+  console.log('🔍 VÉRIFICATION DES COOKIES DE SESSION...');
   
-  for (const endpoint of endpoints) {
-    console.log(`🧪 Test ${endpoint.name}...`);
-    
-    try {
-      const response = await fetch(`https://projet3dback.onrender.com/api${endpoint.url}`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      let result: any = {
-        name: endpoint.name,
-        url: endpoint.url,
-        status: response.status,
-        ok: response.ok,
-        success: response.ok
-      };
-      
-      if (response.ok) {
-        const data = await response.json();
-        result.data = data;
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        result.error = errorData;
-      }
-      
-      results.push(result);
-      console.log(`🧪 ${endpoint.name} result:`, result);
-      
-    } catch (error) {
-      const result = {
-        name: endpoint.name,
-        url: endpoint.url,
-        error: error,
-        success: false
-      };
-      results.push(result);
-      console.log(`🧪 ${endpoint.name} error:`, error);
+  const cookies = document.cookie.split(';');
+  const sessionCookies = [];
+  
+  cookies.forEach(cookie => {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'connect.sid') {
+      sessionCookies.push({ name, value });
     }
-  }
+  });
   
-  console.log('🧪 Résultats complets:', results);
-  return results;
+  console.log('🍪 Cookies de session trouvés:', sessionCookies);
+  console.log('🍪 Tous les cookies:', document.cookie);
+  
+  if (sessionCookies.length === 0) {
+    console.log('❌ Aucun cookie de session trouvé');
+  } else if (sessionCookies.length > 1) {
+    console.log('⚠️ Plusieurs cookies de session trouvés - possible conflit');
+  } else {
+    console.log('✅ Un seul cookie de session trouvé');
+  }
 };
